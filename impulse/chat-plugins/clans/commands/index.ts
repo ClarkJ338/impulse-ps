@@ -107,7 +107,7 @@ export const commands: Chat.ChatCommands = {
 		// ── War Commands ─────────────────────────────────────────────────────
 		war: {
 			...warCommands,
-		}),
+		},
 
 		// ── Help ─────────────────────────────────────────────────────────────
 		help() {
@@ -121,5 +121,5 @@ export const commands: Chat.ChatCommands = {
 			]);
 			this.sendReplyBox(html);
 		},
-	},
+	}),
 };
