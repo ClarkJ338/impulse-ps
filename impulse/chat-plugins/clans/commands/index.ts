@@ -9,6 +9,7 @@ import { rankCommands } from './rank';
 import { clanInfoCommands } from './clan-info';
 import { adminCommands } from './admin';
 import { warCommands } from '../war/index';
+import { wrapWithDbCheck } from '../../impulse-utils';
 
 // ─── Help Lists ───────────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ function buildHelpHtml(
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 export const commands: Chat.ChatCommands = {
-	clan: {
+	clan: wrapWithDbCheck({
 		// ── Member Commands ──────────────────────────────────────────────────
 		...memberCommands,
 
@@ -106,7 +107,7 @@ export const commands: Chat.ChatCommands = {
 		// ── War Commands ─────────────────────────────────────────────────────
 		war: {
 			...warCommands,
-		},
+		}),
 
 		// ── Help ─────────────────────────────────────────────────────────────
 		help() {
