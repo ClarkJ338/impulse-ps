@@ -73,6 +73,7 @@ try {
 import { Repl } from '../lib';
 import * as ConfigLoader from './config-loader';
 import { Sockets } from './sockets';
+import { ImpulseDB } from '../impulse/impulse-db';
 
 function cleanupStale() {
 	return Repl.cleanup();
@@ -85,6 +86,9 @@ function setupGlobals() {
 	void Monitor.version().then((hash: any) => {
 		global.__version.tree = hash;
 	});
+
+	// Make Impulse namespace global
+	global.Impulse = {};
 
 	const { Dex } = require('../sim/dex');
 	global.Dex = Dex;
@@ -129,6 +133,44 @@ function setupGlobals() {
 	global.Sockets = Sockets;
 	if (!Config.lazysockets) {
 		Sockets.start(Config.subprocessescache);
+	}
+}
+
+/*
+ * Initialise ImpulseDB
+ *
+ * Returns true if the database connected successfully, false otherwise.
+ * The server always continues starting regardless of the outcome — a false
+ * return simply means DB-backed features will be unavailable until the next
+ * restart with a working connection.  The timeout options passed here are
+ * critical: without them MongoClient falls back to its own defaults which
+ * can be very long, causing the server startup to hang indefinitely.
+ */
+async function initializeDatabase(): Promise<boolean> {
+	if (!Config.Impulse_DB?.uri) {
+		console.log('ImpulseDB: MongoDB URI not configured. Database features disabled.');
+		return false;
+	}
+	try {
+		await ImpulseDB.init({
+			uri: Config.Impulse_DB.uri,
+			dbName: Config.Impulse_DB.dbName || 'impulse',
+			options: {
+				maxPoolSize: Config.Impulse_DB.maxPoolSize || 500,
+				minPoolSize: Config.Impulse_DB.minPoolSize || 5,
+				// These timeouts are required. Without them, MongoClient uses its own
+				// defaults (which can be very long) and causes the server to hang on
+				// startup when MongoDB is unreachable.
+				serverSelectionTimeoutMS: Config.Impulse_DB.serverSelectionTimeoutMS || 5000,
+				connectTimeoutMS: Config.Impulse_DB.connectTimeoutMS || 10000,
+			},
+		});
+		console.log('ImpulseDB: Successfully connected to MongoDB');
+		return true;
+	} catch (err: any) {
+		console.error('ImpulseDB: Initialization failed —', err?.message ?? err);
+		console.log('ImpulseDB: Server will start without database. DB-backed features will be disabled.');
+		return false;
 	}
 }
 
@@ -185,6 +227,26 @@ export const readyPromise = cleanupStale().then(() => {
 	if (Config.startuphook) {
 		process.nextTick(Config.startuphook);
 	}
+
+	/*
+	 * ImpulseDB Graceful Shutdown
+	 * Only attempt to close the DB connection if it was actually established.
+	 */
+	const shutdownDb = async (signal: string) => {
+		Monitor.notice(`Received ${signal}, shutting down gracefully...`);
+		if (ImpulseDB.isConnected()) {
+			try {
+				await ImpulseDB.close();
+				Monitor.notice('ImpulseDB: Connection closed');
+			} catch (err: any) {
+				Monitor.warn('ImpulseDB: Error closing connection: ' + err.message);
+			}
+		}
+		process.exit(0);
+	};
+
+	process.on('SIGTERM', () => void shutdownDb('SIGTERM'));
+	process.on('SIGINT',  () => void shutdownDb('SIGINT'));
 
 	if (Config.ofemain) {
 		// Create a heapdump if the process runs out of memory.
