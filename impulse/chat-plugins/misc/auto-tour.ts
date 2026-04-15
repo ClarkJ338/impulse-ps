@@ -3,7 +3,7 @@
 * Automated Tournaments Commands
 * @author PrinceSky-Git
 */
-import { ImpulseCollection, ImpulseDB } from '../../impulse-db';
+import { ImpulseCollection } from '../../impulse-db';
 import { Table, wrapWithDbCheck } from '../../impulse-utils';
 import { nameColor } from '../customization/colors';
 
@@ -206,7 +206,7 @@ async function modifyFormats(
 }
 
 export const commands: Chat.ChatCommands = {
-	autotour: wrapWithDbCheck({
+	autotour: {
 		async enable(target, room, user) {
 			if (!checkRoomOwner(this, room)) return;
 			const config = ensureRoomConfig(room!.roomid);
@@ -327,7 +327,7 @@ export const commands: Chat.ChatCommands = {
 				`<center><small>Gen 9 Random Battle format is used by default.</small></center></div>`
 			);
 		},
-	}),
+	},
 
 	at: 'autotour',
 };
@@ -338,9 +338,9 @@ export const destroy = (): void => {
 	}
 };
 
-export async function initAutotour(): Promise<void> {
-    await loadConfig();
-    for (const roomid in autotourConfig) {
-        if (autotourConfig[roomid]?.enabled) startRoomAutotourScheduler(roomid as RoomID);
-    }
-}
+void (async (): Promise<void> => {
+	await loadConfig();
+	for (const roomid in autotourConfig) {
+		if (autotourConfig[roomid]?.enabled) startRoomAutotourScheduler(roomid as RoomID);
+	}
+})();
