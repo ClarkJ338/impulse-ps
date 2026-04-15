@@ -3,6 +3,10 @@
 * Automated Tournaments Commands
 * @author PrinceSky-Git
 */
+
+/* Only Uncomment this file while using MongoDB */
+
+/*
 import { ImpulseCollection } from '../../impulse-db';
 import { Table, wrapWithDbCheck } from '../../impulse-utils';
 import { nameColor } from '../customization/colors';
@@ -344,3 +348,4 @@ void (async (): Promise<void> => {
 		if (autotourConfig[roomid]?.enabled) startRoomAutotourScheduler(roomid as RoomID);
 	}
 })();
+*/
