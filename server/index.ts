@@ -176,7 +176,8 @@ async function initializeDatabase(): Promise<boolean> {
 
 export const readyPromise = cleanupStale().then(() => {
 	setupGlobals();
-}).then(() => {
+}).then(async () => {
+	await initializeDatabase();
 	if (Config.usesqlite) {
 		require('./modlog').start(Config.subprocessescache);
 	}
