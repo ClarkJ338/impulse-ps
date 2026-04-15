@@ -159,7 +159,7 @@ const VALID_COMMAND_TOKENS = '/!';
 const BROADCAST_TOKEN = '!';
 
 const PLUGIN_DATABASE_PATH = './databases/chat-plugins.db';
-const MAX_PLUGIN_LOADING_DEPTH = 3;
+const MAX_PLUGIN_LOADING_DEPTH = 20;
 
 import { formatText, linkRegex, stripFormatting } from './chat-formatter';
 
