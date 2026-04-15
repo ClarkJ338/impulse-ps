@@ -74,6 +74,7 @@ import { Repl } from '../lib';
 import * as ConfigLoader from './config-loader';
 import { Sockets } from './sockets';
 import { ImpulseDB } from '../impulse/impulse-db';
+import { initAutotour } from '../impulse/chat-plugins/misc/auto-tour';
 
 function cleanupStale() {
 	return Repl.cleanup();
@@ -186,6 +187,10 @@ export const readyPromise = cleanupStale().then(() => {
 	Verifier.start(Config.subprocessescache);
 	TeamValidatorAsync.start(Config.subprocessescache);
 	Chat.start(Config.subprocessescache);
+
+	if (ImpulseDB.isConnected()) {
+        await initAutotour();
+	}
 
 	/*********************************************************
 	 * Monitor config file and display diagnostics
