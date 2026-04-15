@@ -74,7 +74,6 @@ import { Repl } from '../lib';
 import * as ConfigLoader from './config-loader';
 import { Sockets } from './sockets';
 import { ImpulseDB } from '../impulse/impulse-db';
-import { initAutotour } from '../impulse/chat-plugins/misc/auto-tour';
 
 function cleanupStale() {
 	return Repl.cleanup();
@@ -177,8 +176,7 @@ async function initializeDatabase(): Promise<boolean> {
 
 export const readyPromise = cleanupStale().then(() => {
 	setupGlobals();
-}).then(async () => {
-	await initializeDatabase();
+}).then(() => {
 	if (Config.usesqlite) {
 		require('./modlog').start(Config.subprocessescache);
 	}
@@ -187,10 +185,6 @@ export const readyPromise = cleanupStale().then(() => {
 	Verifier.start(Config.subprocessescache);
 	TeamValidatorAsync.start(Config.subprocessescache);
 	Chat.start(Config.subprocessescache);
-
-	if (ImpulseDB.isConnected()) {
-        await initAutotour();
-	}
 
 	/*********************************************************
 	 * Monitor config file and display diagnostics
