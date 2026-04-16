@@ -10,6 +10,7 @@
 
 import { FS } from '../../../lib';
 import { toID } from '../../../sim/dex';
+import { Table } from '../../impulse-utils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -53,27 +54,27 @@ async function loadIconData(): Promise<IconData> {
  */
 function pageShell(title: string, showHomeBtn: boolean, content: string): string {
 	const homeBtn = showHomeBtn
-		? `<button class="button" name="send" value="/j view-controlpanel">
-				← Back to Control Panel
-			</button>`
+		? '<button class="button" name="send" value="/j view-controlpanel">' +
+			'← Back to Control Panel' +
+			'</button>'
 		: '';
 
-	return `
-		<div class="pad">
-			<div style="
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				border-bottom: 1px solid #ccc;
-				padding-bottom: 8px;
-				margin-bottom: 14px;
-			">
-				<strong style="font-size: 1.2em;">⚙️ Control Panel${title ? ` — ${title}` : ''}</strong>
-				${homeBtn}
-			</div>
-			${content}
-		</div>
-	`.trim();
+	return (
+		'<div class="pad">' +
+			'<div style="' +
+				'display: flex;' +
+				'align-items: center;' +
+				'justify-content: space-between;' +
+				'border-bottom: 1px solid #ccc;' +
+				'padding-bottom: 8px;' +
+				'margin-bottom: 14px;' +
+			'">' +
+				'<strong style="font-size: 1.2em;">⚙️ Control Panel' + (title ? ' — ' + title : '') + '</strong>' +
+				homeBtn +
+			'</div>' +
+			content +
+		'</div>'
+	);
 }
 
 // ─── View renderers ───────────────────────────────────────────────────────────
@@ -91,35 +92,34 @@ function renderHome(user: User): string {
 		// { emoji: '🎨', label: 'Custom Colors', desc: '...', view: 'colors' },
 	];
 
-	const cardHtml = cards.map(c => `
-		<div style="
-			border: 1px solid #ccc;
-			border-radius: 8px;
-			padding: 12px 16px;
-			margin-bottom: 10px;
-			display: flex;
-			align-items: center;
-			gap: 14px;
-		">
-			<span style="font-size: 2em; line-height: 1;">${c.emoji}</span>
-			<div style="flex: 1;">
-				<strong>${c.label}</strong>
-				<div style="font-size: 0.9em; color: #555;">${c.desc}</div>
-			</div>
-			<button class="button" name="send"
-				value="/j view-controlpanel-${c.view}">
-				Open →
-			</button>
-		</div>
-	`).join('');
+	const cardHtml = cards.map(c =>
+		'<div style="' +
+			'border: 1px solid #ccc;' +
+			'border-radius: 8px;' +
+			'padding: 12px 16px;' +
+			'margin-bottom: 10px;' +
+			'display: flex;' +
+			'align-items: center;' +
+			'gap: 14px;' +
+		'">' +
+			'<span style="font-size: 2em; line-height: 1;">' + c.emoji + '</span>' +
+			'<div style="flex: 1;">' +
+				'<strong>' + c.label + '</strong>' +
+				'<div style="font-size: 0.9em; color: #555;">' + c.desc + '</div>' +
+			'</div>' +
+			'<button class="button" name="send" value="/j view-controlpanel-' + c.view + '">' +
+				'Open →' +
+			'</button>' +
+		'</div>'
+	).join('');
 
-	return pageShell('', false, `
-		<p style="color: #555; margin-bottom: 14px;">
-			Welcome, ${Impulse.nameColor(user.name, true, false)}.
-			Select a section to manage.
-		</p>
-		${cardHtml}
-	`);
+	return pageShell('', false,
+		'<p style="color: #555; margin-bottom: 14px;">' +
+			'Welcome, ' + Impulse.nameColor(user.name, true, false) + '. ' +
+			'Select a section to manage.' +
+		'</p>' +
+		cardHtml
+	);
 }
 
 /** Icons section — table of all users with custom icons. */
@@ -128,109 +128,54 @@ async function renderIcons(user: User): Promise<string> {
 	const entries = Object.entries(iconData);
 
 	if (!entries.length) {
-		return pageShell('User Icons', true, `
-			<p style="color: #888; font-style: italic;">
-				No custom icons have been set yet.
-				Use <code>/icon set [user], [url]</code> to add one.
-			</p>
-		`);
+		return pageShell('User Icons', true,
+			'<p style="color: #888; font-style: italic;">' +
+				'No custom icons have been set yet. ' +
+				'Use <code>/icon set [user], [url]</code> to add one.' +
+			'</p>'
+		);
 	}
 
-	// ── Table header ──────────────────────────────────────────────────────────
-	const thead = `
-		<tr style="background: #f0f0f0;">
-			<th style="${thStyle()}">User</th>
-			<th style="${thStyle()}">Icon</th>
-			<th style="${thStyle()}">Size</th>
-			<th style="${thStyle()}">Set By</th>
-			<th style="${thStyle()}">Added</th>
-			<th style="${thStyle()}">Action</th>
-		</tr>
-	`;
-
-	// ── Table rows ────────────────────────────────────────────────────────────
-	const rows = entries.map(([userid, entry]) => {
+	const tableRows = entries.map(([userid, entry]) => {
 		const sizeLabel = entry.size !== DEFAULT_ICON_SIZE
-			? `${entry.size}px`
-			: `${DEFAULT_ICON_SIZE}px (default)`;
+			? entry.size + 'px'
+			: DEFAULT_ICON_SIZE + 'px (default)';
 
 		const addedDate = new Date(entry.createdAt).toLocaleDateString('en-GB', {
 			day: '2-digit', month: 'short', year: 'numeric',
 		});
 
-		/*
-		 * The delete button sends the existing /icon delete command directly.
-		 * No custom server-side delete handler is needed — the icons plugin
-		 * owns that logic and keeps its CSS in sync automatically.
-		 */
-		const deleteBtn = `
-			<button class="button" name="send"
-				value="/icon delete ${userid}"
-				style="color: #c00; border-color: #c00;">
-				🗑 Delete
-			</button>
-		`;
+		const deleteBtn =
+			'<button class="button" name="send"' +
+				' value="/icon delete ' + userid + '"' +
+				' style="color: #c00; border-color: #c00;">' +
+				'🗑 Delete' +
+			'</button>';
 
-		return `
-			<tr style="border-bottom: 1px solid #ddd;">
-				<td style="${tdStyle()}">
-					${Impulse.nameColor(userid, true, false)}
-				</td>
-				<td style="${tdStyle('center')}">
-					<img
-						src="${entry.url}"
-						width="32"
-						height="32"
-						style="object-fit: contain; vertical-align: middle;"
-						onerror="this.style.opacity='0.3'; this.title='Image failed to load';"
-						title="${entry.url}"
-					/>
-				</td>
-				<td style="${tdStyle('center')}">${sizeLabel}</td>
-				<td style="${tdStyle()}">
-					${Impulse.nameColor(entry.setBy, true, false)}
-				</td>
-				<td style="${tdStyle('center')}">${addedDate}</td>
-				<td style="${tdStyle('center')}">${deleteBtn}</td>
-			</tr>
-		`;
-	}).join('');
+		return [
+			Impulse.nameColor(userid, true, false),
+			'<img src="' + entry.url + '" width="32" height="32"' +
+				' style="object-fit: contain; vertical-align: middle;"' +
+				' title="' + entry.url + '" />',
+			sizeLabel,
+			Impulse.nameColor(entry.setBy, true, false),
+			addedDate,
+			deleteBtn,
+		];
+	});
 
-	const table = `
-		<div style="max-height: 420px; overflow-y: auto; border: 1px solid #ccc; border-radius: 6px;">
-			<table style="width: 100%; border-collapse: collapse; font-size: 0.92em;">
-				<thead>${thead}</thead>
-				<tbody>${rows}</tbody>
-			</table>
-		</div>
-		<p style="margin-top: 8px; font-size: 0.85em; color: #666;">
-			${entries.length} icon${entries.length === 1 ? '' : 's'} total.
-			Use <code>/icon set [user], [url]</code> to add more.
-		</p>
-	`;
+	const table =
+		Table(
+			'User Icons',
+			['User', 'Icon', 'Size', 'Set By', 'Added', 'Action'],
+			tableRows
+		) +
+		'<p style="margin-top: 8px; font-size: 0.85em; color: #666;">' +
+			entries.length + ' icon' + (entries.length === 1 ? '' : 's') + ' total. ' +
+			'Use <code>/icon set [user], [url]</code> to add more.' +
+		'</p>';
 
 	return pageShell('User Icons', true, table);
-}
-
-// ─── Inline style helpers (keeps template strings readable) ──────────────────
-
-function thStyle(): string {
-	return [
-		'padding: 8px 12px',
-		'text-align: left',
-		'font-weight: bold',
-		'font-size: 0.88em',
-		'border-bottom: 2px solid #ccc',
-		'white-space: nowrap',
-	].join('; ');
-}
-
-function tdStyle(align: 'left' | 'center' | 'right' = 'left'): string {
-	return [
-		'padding: 8px 12px',
-		`text-align: ${align}`,
-		'vertical-align: middle',
-	].join('; ');
 }
 
 // ─── Page registrations ───────────────────────────────────────────────────────
@@ -279,10 +224,10 @@ export const commands: Chat.ChatCommands = {
 		},
 
 		help: [
-			`<strong>Control Panel commands</strong>`,
-			`/controlpanel — Open the staff control panel.`,
-			`/controlpanel icons — Jump to the User Icons section.`,
-			`Aliases: /cp, /panel`,
+			'<strong>Control Panel commands</strong>',
+			'/controlpanel — Open the staff control panel.',
+			'/controlpanel icons — Jump to the User Icons section.',
+			'Aliases: /cp, /panel',
 		],
 	},
 
