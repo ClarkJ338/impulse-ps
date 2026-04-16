@@ -4,8 +4,7 @@
  * @author PrinceSky-Git
  *
  * Pages:
- *   view-controlpanel              — main dashboard
- *   view-controlpanel-icons        — custom user icons list
+ * view-controlpanel              — main dashboard (Handles all sub-views dynamically)
  */
 
 import { FS } from '../../../lib';
@@ -16,6 +15,23 @@ import { Table } from '../../impulse-utils';
 
 const ICONS_DATA_FILE = 'impulse/db/custom-icons.json';
 const DEFAULT_ICON_SIZE = 24;
+
+// ─── State Management ─────────────────────────────────────────────────────────
+
+// Tracks the current active sub-page for each user
+const panelViews = new Map<string, string>();
+
+/**
+ * Iterates through a user's connections and silently reloads the control panel 
+ * if they currently have it open. This creates the "SPA" tab-less feel.
+ */
+function refreshControlPanel(user: User): void {
+	for (const conn of user.connections) {
+		if (conn.openPages?.has('controlpanel')) {
+			Chat.parse('/join view-controlpanel', null, user, conn);
+		}
+	}
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,7 +86,8 @@ function renderHome(user: User): string {
 				'<strong>' + c.label + '</strong>' +
 				'<div style="font-size: 0.9em; color: #555;">' + c.desc + '</div>' +
 			'</div>' +
-			'<button class="button" name="send" value="/controlpanel ' + c.view + '">' +
+			// CHANGED: Buttons now route through the 'view' handler instead of directly opening new pages
+			'<button class="button" name="send" value="/controlpanel view ' + c.view + '">' +
 				'Open →' +
 			'</button>' +
 		'</div>'
@@ -101,8 +118,9 @@ async function renderIcons(user: User): Promise<string> {
 	const iconData = await loadIconData();
 	const entries = Object.entries(iconData);
 
+	// CHANGED: Back button routes through the 'view' handler
 	const backBtn =
-		'<button class="button" name="send" value="/controlpanel">' +
+		'<button class="button" name="send" value="/controlpanel view home">' +
 			'← Back to Control Panel' +
 		'</button>';
 
@@ -140,6 +158,8 @@ async function renderIcons(user: User): Promise<string> {
 			day: '2-digit', month: 'short', year: 'numeric',
 		});
 
+		// You might want to update the /icon delete command to also call refreshControlPanel(user) in its own file
+		// so the table updates dynamically when an icon is deleted.
 		const deleteBtn =
 			'<button class="button" name="send"' +
 				' value="/icon delete ' + userid + '"' +
@@ -183,16 +203,17 @@ async function renderIcons(user: User): Promise<string> {
 export const pages: Chat.PageTable = {
 	async controlpanel(query, user, connection) {
 		this.checkCan('roomowner');
-		this.title = 'Control Panel';
-
-		const [view] = query;
+		
+		// CHANGED: We now rely on the in-memory state Map instead of the URL query string
+		const view = panelViews.get(user.id) || 'home';
 
 		switch (view) {
 			case 'icons':
 				this.title = 'Control Panel — Icons';
-				return renderIcons(user);
+				return await renderIcons(user);
 
 			default:
+				this.title = 'Control Panel';
 				return renderHome(user);
 		}
 	},
@@ -204,12 +225,21 @@ export const commands: Chat.ChatCommands = {
 	controlpanel: {
 		''(target, room, user) {
 			this.checkCan('roomowner');
+			panelViews.set(user.id, 'home');
 			return this.parse('/join view-controlpanel');
+		},
+
+		// CHANGED: New view handler that updates state and silently refreshes the open page
+		view(target, room, user) {
+			this.checkCan('roomowner');
+			const view = toID(target) || 'home';
+			panelViews.set(user.id, view);
+			refreshControlPanel(user);
 		},
 
 		icons(target, room, user) {
 			this.checkCan('roomowner');
-			return this.parse('/join view-controlpanel-icons');
+			return this.parse('/controlpanel view icons');
 		},
 
 		help: [
