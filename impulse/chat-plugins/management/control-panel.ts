@@ -33,11 +33,6 @@ interface IconData {
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
-/**
- * Read icon data fresh from disk each time a page loads.
- * This avoids coupling to the icons plugin's in-memory `data`
- * object and always reflects the current persisted state.
- */
 async function loadIconData(): Promise<IconData> {
 	try {
 		const raw = await FS(ICONS_DATA_FILE).readIfExists();
@@ -48,38 +43,8 @@ async function loadIconData(): Promise<IconData> {
 	return {};
 }
 
-/**
- * Shared page chrome: wraps content with a consistent header bar
- * that shows the panel title and a Home button (hidden on home itself).
- */
-function pageShell(title: string, showHomeBtn: boolean, content: string): string {
-	const homeBtn = showHomeBtn
-		? '<button class="button" name="send" value="/j view-controlpanel">' +
-			'← Back to Control Panel' +
-			'</button>'
-		: '';
-
-	return (
-		'<div class="pad">' +
-			'<div style="' +
-				'display: flex;' +
-				'align-items: center;' +
-				'justify-content: space-between;' +
-				'border-bottom: 1px solid #ccc;' +
-				'padding-bottom: 8px;' +
-				'margin-bottom: 14px;' +
-			'">' +
-				'<strong style="font-size: 1.2em;">⚙️ Control Panel' + (title ? ' — ' + title : '') + '</strong>' +
-				homeBtn +
-			'</div>' +
-			content +
-		'</div>'
-	);
-}
-
 // ─── View renderers ───────────────────────────────────────────────────────────
 
-/** Main dashboard — one card per feature section. */
 function renderHome(user: User): string {
 	const cards: Array<{ label: string; desc: string; view: string; emoji: string }> = [
 		{
@@ -88,8 +53,6 @@ function renderHome(user: User): string {
 			desc: 'Manage custom userlist icons assigned to players.',
 			view: 'icons',
 		},
-		// ── add future sections here ─────────────────────────────────────────
-		// { emoji: '🎨', label: 'Custom Colors', desc: '...', view: 'colors' },
 	];
 
 	const cardHtml = cards.map(c =>
@@ -107,32 +70,64 @@ function renderHome(user: User): string {
 				'<strong>' + c.label + '</strong>' +
 				'<div style="font-size: 0.9em; color: #555;">' + c.desc + '</div>' +
 			'</div>' +
-			'<button class="button" name="send" value="/j view-controlpanel-' + c.view + '">' +
+			'<button class="button" name="send" value="/controlpanel ' + c.view + '">' +
 				'Open →' +
 			'</button>' +
 		'</div>'
 	).join('');
 
-	return pageShell('', false,
-		'<p style="color: #555; margin-bottom: 14px;">' +
-			'Welcome, ' + Impulse.nameColor(user.name, true, false) + '. ' +
-			'Select a section to manage.' +
-		'</p>' +
-		cardHtml
+	return (
+		'<div class="pad">' +
+			'<div style="' +
+				'display: flex;' +
+				'align-items: center;' +
+				'justify-content: space-between;' +
+				'border-bottom: 1px solid #ccc;' +
+				'padding-bottom: 8px;' +
+				'margin-bottom: 14px;' +
+			'">' +
+				'<strong style="font-size: 1.2em;">⚙️ Control Panel</strong>' +
+			'</div>' +
+			'<p style="color: #555; margin-bottom: 14px;">' +
+				'Welcome, ' + Impulse.nameColor(user.name, true, false) + '. ' +
+				'Select a section to manage.' +
+			'</p>' +
+			cardHtml +
+		'</div>'
 	);
 }
 
-/** Icons section — table of all users with custom icons. */
 async function renderIcons(user: User): Promise<string> {
 	const iconData = await loadIconData();
 	const entries = Object.entries(iconData);
 
+	const backBtn =
+		'<button class="button" name="send" value="/controlpanel">' +
+			'← Back to Control Panel' +
+		'</button>';
+
+	const header =
+		'<div style="' +
+			'display: flex;' +
+			'align-items: center;' +
+			'justify-content: space-between;' +
+			'border-bottom: 1px solid #ccc;' +
+			'padding-bottom: 8px;' +
+			'margin-bottom: 14px;' +
+		'">' +
+			'<strong style="font-size: 1.2em;">⚙️ Control Panel — User Icons</strong>' +
+			backBtn +
+		'</div>';
+
 	if (!entries.length) {
-		return pageShell('User Icons', true,
-			'<p style="color: #888; font-style: italic;">' +
-				'No custom icons have been set yet. ' +
-				'Use <code>/icon set [user], [url]</code> to add one.' +
-			'</p>'
+		return (
+			'<div class="pad">' +
+				header +
+				'<p style="color: #888; font-style: italic;">' +
+					'No custom icons have been set yet. ' +
+					'Use <code>/icon set [user], [url]</code> to add one.' +
+				'</p>' +
+			'</div>'
 		);
 	}
 
@@ -175,14 +170,18 @@ async function renderIcons(user: User): Promise<string> {
 			'Use <code>/icon set [user], [url]</code> to add more.' +
 		'</p>';
 
-	return pageShell('User Icons', true, table);
+	return (
+		'<div class="pad">' +
+			header +
+			table +
+		'</div>'
+	);
 }
 
 // ─── Page registrations ───────────────────────────────────────────────────────
 
 export const pages: Chat.PageTable = {
 	async controlpanel(query, user, connection) {
-		// Only global staff (roomowner+) may access
 		this.checkCan('roomowner');
 		this.title = 'Control Panel';
 
@@ -190,11 +189,8 @@ export const pages: Chat.PageTable = {
 
 		switch (view) {
 			case 'icons':
+				this.title = 'Control Panel — Icons';
 				return renderIcons(user);
-
-			// ── future views slot in here ────────────────────────────────────
-			// case 'colors':
-			//   return renderColors(user);
 
 			default:
 				return renderHome(user);
@@ -206,18 +202,11 @@ export const pages: Chat.PageTable = {
 
 export const commands: Chat.ChatCommands = {
 	controlpanel: {
-		/**
-		 * /controlpanel — open the main dashboard.
-		 * Aliases: /cp, /panel
-		 */
 		''(target, room, user) {
 			this.checkCan('roomowner');
 			return this.parse('/join view-controlpanel');
 		},
 
-		/**
-		 * /controlpanel icons — jump directly to the icons section.
-		 */
 		icons(target, room, user) {
 			this.checkCan('roomowner');
 			return this.parse('/join view-controlpanel-icons');
@@ -231,7 +220,6 @@ export const commands: Chat.ChatCommands = {
 		],
 	},
 
-	// Short aliases
 	cp: 'controlpanel',
 	panel: 'controlpanel',
 
