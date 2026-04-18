@@ -183,7 +183,7 @@ export const commands: ChatCommands = {
 
 	atm: 'balance',
 	bal: 'balance',
-	richestusers: 'richu',
+	richu: 'richestusers',
 
 	ecohelp(target, room, user) {
 		if (!this.runBroadcast()) return;
