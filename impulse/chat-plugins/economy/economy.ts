@@ -170,7 +170,7 @@ export const commands: ChatCommands = {
 
 		const rows = sorted.map(([userid, balance], i) => [
 			String(i + 1),
-			Chat.escapeHTML(userid),
+			Impulse.nameColor(userid, true, true),
 			String(balance),
 		]);
 
