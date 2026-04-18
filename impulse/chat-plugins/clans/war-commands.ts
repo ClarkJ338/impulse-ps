@@ -4,9 +4,9 @@
  * @author PrinceSky-Git
  */
 
-import { Clans, ClanWars, ClanBattleLogs, type ClanWarDoc } from '../database';
-import { log, to, calculateElo, safeElo, displayElo } from '../utils';
-import { broadcastWarUpdate, broadcastWarEnded, getWarUhtmlId, generateWarStats, generateHeadToHeadRecord } from '../html';
+import { Clans, ClanWars, ClanBattleLogs, type ClanWarDoc } from './database';
+import { log, to, calculateElo, safeElo, displayElo } from './utils';
+import { broadcastWarUpdate, broadcastWarEnded, getWarUhtmlId, generateWarStats, generateHeadToHeadRecord } from './html';
 import {
 	getClanById,
 	getWarPermissionContext,
@@ -16,11 +16,11 @@ import {
 	assertWarNotPaused,
 	assertWarIsPaused,
 	resolveWarClans,
-} from '../context';
+} from './context';
 import { Table } from '../../impulse-utils';
-import { UserClans } from '../database';
-import { DEFAULT_PAGE_SIZE, DEFAULT_LOG_LIMIT, WAR_CHALLENGE_COOLDOWN_MS } from '../constants';
-import type { ClanWar } from '../interface';
+import { UserClans } from './database';
+import { DEFAULT_PAGE_SIZE, DEFAULT_LOG_LIMIT, WAR_CHALLENGE_COOLDOWN_MS } from './constants';
+import type { ClanWar } from './interface';
 
 export const warCommands: Chat.ChatCommands = {
 
