@@ -1,3 +1,4 @@
+// chat-plugins/tcg/index.ts
 import { FS } from '../../../lib';
 import { TCGMatch, TCGCard, InGameCard, isBasicPokemon } from './engine';
 
@@ -40,6 +41,7 @@ function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench
 
     // 2. Determine Action for Occupied Slot (Image Button)
     let btnValue = '';
+    let isPromotable = false;
     
     if (context === 'hand' && !isAi) {
         btnValue = isSelected ? `/tcg deselect` : `/tcg select ${card.uid}`;
@@ -47,6 +49,10 @@ function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench
     else if ((context === 'active' || context === 'bench') && !isAi) {
         if (isSelectedEnergy) {
             btnValue = `/tcg attach ${targetSlot}`;
+        } else if (!selectedCard && context === 'bench' && !match.player.active) {
+            // If the Active slot is empty, clicking a benched Pokémon promotes it!
+            btnValue = `/tcg promote ${targetSlot}`;
+            isPromotable = true;
         } else if (!selectedCard && context === 'active' && card.attacks && card.attacks.length > 0) {
             btnValue = `/tcg attack 0`; 
         }
@@ -62,9 +68,11 @@ function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench
     html += `<img src="${card.images.small}" style="width: 100%; border-radius: 4px; display: block;" alt="${card.name}" />`;
     
     if (btnValue) {
-        // Visual overlay if the card is about to be attached to
+        // Visual overlays based on context
         if (isSelectedEnergy) {
              html += `<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 123, 255, 0.3); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">Attach</div>`;
+        } else if (isPromotable) {
+             html += `<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(40, 167, 69, 0.3); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">Promote</div>`;
         }
         html += `</button>`;
     }
@@ -129,6 +137,20 @@ export const commands: Chat.ChatCommands = {
                 this.refreshPage('tcg-match');
             } else {
                 this.errorReply("Cannot attach that card there. Are you sure it's Energy?");
+            }
+        },
+
+        promote(target, room, user) {
+            const match = activeMatches.get(user.id);
+            if (!match || match.turn !== 'player') return this.errorReply("Not your turn.");
+            
+            const index = parseInt(target);
+            if (isNaN(index)) return this.errorReply("Invalid bench index.");
+
+            if (match.promote(true, index)) {
+                this.refreshPage('tcg-match');
+            } else {
+                this.errorReply("Could not promote that Pokémon.");
             }
         },
 
