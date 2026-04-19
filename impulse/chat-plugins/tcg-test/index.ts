@@ -5,7 +5,12 @@ import { TCGMatch, TCGCard, InGameCard } from './engine';
 let baseSetData: TCGCard[] = [];
 try {
     const rawData = FS('impulse/chat-plugins/tcg-test/base1.json').readIfExistsSync();
-    if (rawData) baseSetData = JSON.parse(rawData).data; 
+    if (rawData) {
+        const parsed = JSON.parse(rawData);
+        // The API returns { data: [...] }, but the raw GitHub repo JSON is just [...]
+        // This safely handles both formats!
+        baseSetData = Array.isArray(parsed) ? parsed : (parsed.data || []);
+    }
 } catch (e) {
     console.error("Failed to load Base Set JSON:", e);
 }
