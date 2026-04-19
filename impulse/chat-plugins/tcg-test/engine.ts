@@ -15,11 +15,16 @@ export interface InGameCard extends TCGCard {
     attachedEnergy: TCGCard[];
 }
 
-// Helper to safely identify Basic Pokemon regardless of JSON capitalization
+// Safely identify Basic Pokemon regardless of JSON formatting
 export function isBasicPokemon(card: TCGCard): boolean {
-    if (!card.supertype?.includes('Pok') && !card.supertype?.includes('pok')) return false;
-    // Exclude evolutions
-    if (card.subtypes?.includes('Stage 1') || card.subtypes?.includes('Stage 2') || card.subtypes?.includes('MEGA') || card.subtypes?.includes('VMAX')) return false;
+    const isPokemon = card.supertype === 'Pokémon' || card.supertype === 'Pokemon';
+    if (!isPokemon) return false;
+    
+    if (card.subtypes) {
+        if (card.subtypes.includes('Stage 1') || card.subtypes.includes('Stage 2') || card.subtypes.includes('MEGA') || card.subtypes.includes('VMAX')) {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -92,8 +97,6 @@ export class TCGMatch {
         if (handIndex === -1) return false; 
         
         const card = activePlayer.hand[handIndex];
-        
-        // Safer check using our helper function
         if (!isBasicPokemon(card)) return false;
 
         if (slot === 'active') {
@@ -119,7 +122,7 @@ export class TCGMatch {
         if (handIndex === -1) return false;
 
         const card = activePlayer.hand[handIndex];
-        if (!card || !card.supertype?.includes('Energy')) return false;
+        if (!card.supertype?.includes('Energy')) return false;
 
         const target = slot === 'active' ? activePlayer.active : activePlayer.bench[slot];
         if (!target) return false;
