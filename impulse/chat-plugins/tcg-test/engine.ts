@@ -135,6 +135,20 @@ export class TCGMatch {
         return true;
     }
 
+    promote(isPlayer: boolean, benchIndex: number) {
+        const activePlayer = isPlayer ? this.player : this.ai;
+        
+        if (activePlayer.active !== null) return false; // Active is not empty
+        
+        const card = activePlayer.bench[benchIndex];
+        if (!card) return false;
+
+        activePlayer.active = card;
+        activePlayer.bench[benchIndex] = null;
+        this.addLog(`${isPlayer ? 'Player' : 'AI'} promoted ${card.name} to Active.`);
+        return true;
+    }
+
     private processKnockout(isPlayerKnockedOut: boolean) {
         const victim = isPlayerKnockedOut ? this.player : this.ai;
         const attacker = isPlayerKnockedOut ? this.ai : this.player;
@@ -186,11 +200,19 @@ export class TCGMatch {
         this.addLog("AI is taking its turn...");
         this.ai.draw(1);
 
+        // 1. Try to promote a benched Pokémon if the active was knocked out
         if (!this.ai.active) {
-            const basic = this.ai.hand.find(c => isBasicPokemon(c));
-            if (basic) this.playBasicPokemon(false, basic.uid, 'active');
+            const benchedIndex = this.ai.bench.findIndex(c => c !== null);
+            if (benchedIndex !== -1) {
+                this.promote(false, benchedIndex);
+            } else {
+                // Otherwise play a new basic from hand
+                const basic = this.ai.hand.find(c => isBasicPokemon(c));
+                if (basic) this.playBasicPokemon(false, basic.uid, 'active');
+            }
         }
 
+        // 2. Play basics to bench
         for (const card of [...this.ai.hand]) {
             if (isBasicPokemon(card)) {
                 const emptySlot = this.ai.bench.findIndex(c => c === null);
@@ -200,6 +222,7 @@ export class TCGMatch {
             }
         }
 
+        // 3. Attack
         let attacked = false;
         if (this.ai.active && this.ai.active.attacks && this.ai.active.attacks.length > 0) {
             attacked = this.attack(false, 0); 
