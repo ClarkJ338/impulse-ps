@@ -1,5 +1,5 @@
 import { FS } from '../../../lib';
-import { TCGMatch, TCGCard, InGameCard } from './engine';
+import { TCGMatch, TCGCard, InGameCard, isBasicPokemon } from './engine';
 
 // Load Database
 let baseSetData: TCGCard[] = [];
@@ -20,65 +20,61 @@ function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench
     const isSelected = card && context === 'hand' && card.uid === match.player.selectedUid;
     const selectedCard = match.player.hand.find(c => c.uid === match.player.selectedUid);
 
+    // Helpers to determine what actions are currently valid
+    const isSelectedBasic = selectedCard && isBasicPokemon(selectedCard);
+    const isSelectedEnergy = selectedCard && selectedCard.supertype?.includes('Energy');
+
     const borderStyle = isSelected ? `2px solid #007bff` : `2px solid transparent`;
     const borderDashed = isSelected ? `2px dashed #007bff` : `1px dashed #888`;
 
     // 1. Render Empty Field Slots
     if (!card) {
-        let btnValue = '';
-        
-        // If the player has ANY card selected, make friendly empty slots clickable
-        if (!isAi && selectedCard) {
-            btnValue = `/tcg place ${targetSlot}`;
-        }
-
-        if (btnValue) {
-            // Targetable empty slot
-            return `<button name="send" value="${btnValue}" style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 6px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; color: #007bff; font-weight: bold; font-size: 11px; background: rgba(0, 123, 255, 0.1); cursor: pointer; box-sizing: border-box; padding: 0;">Place<br/>Here</button>`;
+        if (!isAi && isSelectedBasic) {
+            // Valid drop target for a Basic Pokémon
+            return `<button class="button" name="send" value="/tcg place ${targetSlot}" style="width: 75px; height: 104px; margin: 1px; background: #e6f2ff; border: 2px dashed #007bff; border-radius: 6px; cursor: pointer; color: #007bff; font-weight: bold; font-size: 11px;">Place<br/>Here</button>`;
         } else {
-            // Un-targetable empty slot (No card selected, or AI's board)
-            return `<div style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 6px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; line-height: 104px; color: #888; font-size: 10px; box-sizing: border-box;">Empty</div>`;
+            // Un-targetable empty slot
+            return `<div style="width: 75px; height: 104px; border: 1px dashed #888; border-radius: 6px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; line-height: 104px; color: #888; font-size: 10px;">Empty</div>`;
         }
     }
 
     // 2. Determine Action for Occupied Slot (Image Button)
     let btnValue = '';
     
-    // Hand cards can be selected or deselected
     if (context === 'hand' && !isAi) {
         btnValue = isSelected ? `/tcg deselect` : `/tcg select ${card.uid}`;
     } 
-    // Friendly Field cards act as targets for energy, or as attackers
     else if ((context === 'active' || context === 'bench') && !isAi) {
-        if (selectedCard) {
-            // If ANYTHING is selected, clicking an occupied slot tries to attach it (The backend rejects if it's not energy)
+        if (isSelectedEnergy) {
             btnValue = `/tcg attach ${targetSlot}`;
         } else if (!selectedCard && context === 'active' && card.attacks && card.attacks.length > 0) {
-            // Attack!
             btnValue = `/tcg attack 0`; 
         }
     }
 
     // 3. Render the Card with Overlays
-    let html = `<div style="width: 75px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; border: ${borderStyle}; border-radius: 6px; position: relative; box-sizing: border-box;">`;
+    let html = `<div style="width: 75px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; border: ${borderStyle}; border-radius: 6px; position: relative;">`;
 
-    // Wrap the image inside the button
     if (btnValue) {
-        html += `<button name="send" value="${btnValue}" style="background: transparent; border: none; padding: 0; margin: 0; width: 100%; cursor: pointer; display: block;">`;
+        html += `<button class="button" name="send" value="${btnValue}" style="background: transparent; border: none; padding: 0; margin: 0; width: 100%; cursor: pointer; display: block; box-shadow: none;">`;
     }
     
     html += `<img src="${card.images.small}" style="width: 100%; border-radius: 4px; display: block;" alt="${card.name}" />`;
     
     if (btnValue) {
+        // Visual overlay if the card is about to be attached to
+        if (isSelectedEnergy) {
+             html += `<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 123, 255, 0.3); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">Attach</div>`;
+        }
         html += `</button>`;
     }
 
     // Overlay Damage and Energy
     if (card.currentDamage > 0) {
-         html += `<div style="position: absolute; top: 2px; right: 2px; color: white; background: red; font-weight: bold; border-radius: 3px; font-size: 9px; padding: 1px 3px; border: 1px solid white; pointer-events: none;">${card.currentDamage}</div>`;
+         html += `<div style="position: absolute; top: -2px; right: -2px; color: white; background: #e60000; font-weight: bold; border-radius: 4px; font-size: 10px; padding: 1px 4px; border: 1px solid white; pointer-events: none; box-shadow: 0 1px 2px rgba(0,0,0,0.5);">${card.currentDamage}</div>`;
     }
     if (card.attachedEnergy?.length > 0) {
-         html += `<div style="position: absolute; bottom: 2px; right: 2px; color: white; background: rgba(0,0,0,0.8); border-radius: 3px; font-size: 9px; padding: 1px 3px; border: 1px solid white; pointer-events: none;">⚡ ${card.attachedEnergy.length}</div>`;
+         html += `<div style="position: absolute; bottom: -2px; right: -2px; color: white; background: #222; border-radius: 4px; font-size: 10px; padding: 1px 4px; border: 1px solid white; pointer-events: none; box-shadow: 0 1px 2px rgba(0,0,0,0.5);">⚡ ${card.attachedEnergy.length}</div>`;
     }
     
     html += `</div>`;
