@@ -15,55 +15,67 @@ try {
 
 const activeMatches = new Map<string, TCGMatch>();
 
-// --- UI Helper Functions ---
+// --- Contextual UI Rendering ---
 function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench', targetSlot: number | 'active', isAi: boolean, match: TCGMatch): string {
     const isSelected = card && context === 'hand' && card.uid === match.player.selectedUid;
     const selectedCard = match.player.hand.find(c => c.uid === match.player.selectedUid);
 
-    // Styling logic
-    const borderStyle = isSelected ? `2px solid #007bff` : `1px solid #ccc`;
+    const borderStyle = isSelected ? `2px solid #007bff` : `2px solid transparent`;
     const borderDashed = isSelected ? `2px dashed #007bff` : `1px dashed #888`;
 
-    // 1. Rendering an Empty Field Slot
+    // 1. Render Empty Field Slots
     if (!card) {
-        let html = `<div style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 4px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; color: #888; font-size: 10px; box-sizing: border-box; padding-top: 30px;">`;
-        html += `Empty<br/>`;
-        
-        // Show "Place Here" if the user has a Basic Pokémon selected
+        let btnValue = '';
         if (!isAi && selectedCard?.supertype === 'Pokémon' && selectedCard?.subtypes?.includes('Basic')) {
-            html += `<button class="button" name="send" value="/tcg place ${targetSlot}" style="margin-top: 5px; font-size: 9px; padding: 2px;">Place Here</button>`;
+            btnValue = `/tcg place ${targetSlot}`;
         }
-        
-        html += `</div>`;
-        return html;
-    }
 
-    // 2. Rendering an Occupied Card Slot
-    let html = `<div style="width: 75px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; font-size: 10px; border: ${borderStyle}; border-radius: 5px; padding-bottom: 2px;">`;
-    html += `<img src="${card.images.small}" style="width: 100%; border-radius: 4px 4px 0 0;" alt="${card.name}" />`;
-    
-    if (card.currentDamage > 0) html += `<div style="color: white; background: red; font-weight: bold; border-radius: 3px; margin: 1px; font-size: 9px;">${card.currentDamage} DMG</div>`;
-    if (card.attachedEnergy?.length > 0) html += `<div style="font-size: 9px; margin-top: 1px;">⚡: ${card.attachedEnergy.length}</div>`;
-
-    // Hand Buttons: Select or Deselect
-    if (context === 'hand' && !isAi) {
-        if (isSelected) {
-            html += `<button class="button" name="send" value="/tcg deselect" style="width: 90%; margin-top: 1px; font-size: 9px; padding: 2px 0; background: #ffe6e6;">Deselect</button>`;
+        if (btnValue) {
+            // Targetable empty slot (Highlight blue and make clickable)
+            return `<button name="send" value="${btnValue}" style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 6px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; color: #007bff; font-weight: bold; font-size: 11px; background: rgba(0, 123, 255, 0.1); cursor: pointer; box-sizing: border-box; padding: 0;">Place<br/>Here</button>`;
         } else {
-            html += `<button class="button" name="send" value="/tcg select ${card.uid}" style="width: 90%; margin-top: 1px; font-size: 9px; padding: 2px 0;">Select</button>`;
+            // Un-targetable empty slot
+            return `<div style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 6px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; line-height: 104px; color: #888; font-size: 10px; box-sizing: border-box;">Empty</div>`;
         }
     }
 
-    // Field Buttons: Attach Energy or Attack
-    if ((context === 'active' || context === 'bench') && !isAi) {
+    // 2. Determine Action for Occupied Slot (Image Button)
+    let btnValue = '';
+    
+    // Hand cards can be selected or deselected
+    if (context === 'hand' && !isAi) {
+        btnValue = isSelected ? `/tcg deselect` : `/tcg select ${card.uid}`;
+    } 
+    // Field cards act as targets for energy, or as attackers
+    else if ((context === 'active' || context === 'bench') && !isAi) {
         if (selectedCard?.supertype === 'Energy') {
-            html += `<button class="button" name="send" value="/tcg attach ${targetSlot}" style="width: 90%; margin-top: 1px; font-size: 9px; padding: 2px 0; background: #e6f7ff;">Attach Here</button>`;
-        } else if (!selectedCard && context === 'active' && card.attacks) {
-            // Only show attacks if NO card is currently selected from the hand
-            card.attacks.forEach((atk, atkIndex) => {
-                html += `<button class="button" name="send" value="/tcg attack ${atkIndex}" style="width: 90%; margin-top: 1px; font-size: 8px; padding: 2px 0; white-space: normal;">⚔️ ${atk.name}</button>`;
-            });
+            btnValue = `/tcg attach ${targetSlot}`;
+        } else if (!selectedCard && context === 'active' && card.attacks && card.attacks.length > 0) {
+            // If the active Pokémon is clicked without anything selected in hand, use its first attack
+            btnValue = `/tcg attack 0`; 
         }
+    }
+
+    // 3. Render the Card with Overlays
+    let html = `<div style="width: 75px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; border: ${borderStyle}; border-radius: 6px; position: relative; box-sizing: border-box;">`;
+
+    // Wrap the image inside the button
+    if (btnValue) {
+        html += `<button name="send" value="${btnValue}" style="background: transparent; border: none; padding: 0; margin: 0; width: 100%; cursor: pointer; display: block;">`;
+    }
+    
+    html += `<img src="${card.images.small}" style="width: 100%; border-radius: 4px; display: block;" alt="${card.name}" />`;
+    
+    if (btnValue) {
+        html += `</button>`;
+    }
+
+    // Overlay Damage and Energy counters ON TOP of the image so no bottom space is used
+    if (card.currentDamage > 0) {
+         html += `<div style="position: absolute; top: 2px; right: 2px; color: white; background: red; font-weight: bold; border-radius: 3px; font-size: 9px; padding: 1px 3px; border: 1px solid white; pointer-events: none;">${card.currentDamage}</div>`;
+    }
+    if (card.attachedEnergy?.length > 0) {
+         html += `<div style="position: absolute; bottom: 2px; right: 2px; color: white; background: rgba(0,0,0,0.8); border-radius: 3px; font-size: 9px; padding: 1px 3px; border: 1px solid white; pointer-events: none;">⚡ ${card.attachedEnergy.length}</div>`;
     }
     
     html += `</div>`;
@@ -139,7 +151,7 @@ export const commands: Chat.ChatCommands = {
             const match = activeMatches.get(user.id);
             if (!match || match.turn !== 'player') return this.errorReply("Not your turn or no active match.");
 
-            match.player.selectedUid = null; // Clear selection
+            match.player.selectedUid = null; 
             match.turn = 'ai';
             match.executeAITurn();
             this.refreshPage('tcg-match');
@@ -167,7 +179,7 @@ export const pages: Chat.PageTable = {
 
             let html = `<div class="pad" style="max-width: 850px; margin: auto; font-size: 13px;">`;
 
-            // --- AI Field (Flexbox Layout) ---
+            // --- AI Field ---
             html += `<div style="background: #e8e8e8; padding: 5px; border-radius: 6px; margin-bottom: 5px;">`;
             html += `<strong>AI Opponent</strong> (Hand: ${match.ai.hand.length} | Deck: ${match.ai.deck.length} | Prizes: ${match.ai.prizes.length})`;
             html += `<div style="display: flex; gap: 5px; margin-top: 3px;">`;
@@ -178,7 +190,7 @@ export const pages: Chat.PageTable = {
 
             html += `<hr style="margin: 5px 0;"/>`;
 
-            // --- Player Field (Flexbox Layout) ---
+            // --- Player Field ---
             html += `<div style="background: #f0f8ff; padding: 5px; border-radius: 6px; margin-bottom: 5px;">`;
             html += `<strong>Your Field</strong> (Deck: ${match.player.deck.length} | Prizes: ${match.player.prizes.length})`;
             html += `<div style="display: flex; gap: 5px; margin-top: 3px;">`;
@@ -205,7 +217,7 @@ export const pages: Chat.PageTable = {
             html += `<button class="button" name="send" value="/tcg quit" style="color: red; float: right;">Quit Match</button>`;
             html += `</div>`;
 
-            // --- Game Log (Compacted Height) ---
+            // --- Game Log ---
             html += `<div style="margin-top: 5px; background: #222; color: #fff; padding: 5px; height: 80px; overflow-y: scroll; border-radius: 5px; font-family: monospace; font-size: 11px;">`;
             match.logs.forEach(log => {
                 html += `<div>> ${log}</div>`;
