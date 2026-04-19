@@ -78,8 +78,13 @@ export class TCGMatch {
         if (this.logs.length > 20) this.logs.pop(); // Retention policy
     }
 
-    playBasicPokemon(isPlayer: boolean, handIndex: number) {
+    playBasicPokemon(isPlayer: boolean, uid: number) {
         const activePlayer = isPlayer ? this.player : this.ai;
+        
+        // Find the card by its unique ID instead of array index
+        const handIndex = activePlayer.hand.findIndex(c => c.uid === uid);
+        if (handIndex === -1) return false; 
+        
         const card = activePlayer.hand[handIndex];
 
         if (!card || card.supertype !== 'Pokémon' || !card.subtypes?.includes('Basic')) return false;
@@ -98,10 +103,13 @@ export class TCGMatch {
         return false;
     }
 
-    attachEnergy(isPlayer: boolean, handIndex: number, targetIsActive: boolean, benchIndex?: number) {
+    attachEnergy(isPlayer: boolean, uid: number, targetIsActive: boolean, benchIndex?: number) {
         const activePlayer = isPlayer ? this.player : this.ai;
-        const card = activePlayer.hand[handIndex];
+        
+        const handIndex = activePlayer.hand.findIndex(c => c.uid === uid);
+        if (handIndex === -1) return false;
 
+        const card = activePlayer.hand[handIndex];
         if (!card || card.supertype !== 'Energy') return false;
 
         const target = targetIsActive ? activePlayer.active : activePlayer.bench[benchIndex!];
@@ -167,23 +175,31 @@ export class TCGMatch {
 
         // 1. Try to play an active pokemon if missing
         if (!this.ai.active) {
-            const basicIndex = this.ai.hand.findIndex(c => c.supertype === 'Pokémon' && c.subtypes?.includes('Basic'));
-            if (basicIndex !== -1) this.playBasicPokemon(false, basicIndex);
+            const basic = this.ai.hand.find(c => c.supertype === 'Pokémon' && c.subtypes?.includes('Basic'));
+            if (basic) this.playBasicPokemon(false, basic.uid);
         }
 
-        // 2. Try to bench pokemon
-        for (let i = this.ai.hand.length - 1; i >= 0; i--) {
-            if (this.ai.bench.length < 5 && this.ai.hand[i].supertype === 'Pokémon' && this.ai.hand[i].subtypes?.includes('Basic')) {
-                this.playBasicPokemon(false, i);
+        // 2. Try to bench pokemon (Shallow copy to prevent array shifting issues)
+        for (const card of [...this.ai.hand]) {
+            if (this.ai.bench.length < 5 && card.supertype === 'Pokémon' && card.subtypes?.includes('Basic')) {
+                this.playBasicPokemon(false, card.uid);
             }
         }
 
         // 3. Try to attack
+        let attacked = false;
         if (this.ai.active && this.ai.active.attacks && this.ai.active.attacks.length > 0) {
-            this.attack(false, 0); // This will automatically pass the turn back to player inside attack()
-        } else {
+            attacked = this.attack(false, 0); 
+        }
+
+        // 4. Failsafe: If the AI couldn't attack, manually pass turn
+        if (!attacked) {
             this.addLog("AI ends turn without attacking.");
             this.turn = 'player';
+        }
+
+        // 5. Setup the player's turn
+        if (this.turn === 'player') {
             this.player.draw(1);
             this.addLog("Player draws a card for turn.");
         }
