@@ -26,15 +26,17 @@ function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench
     // 1. Render Empty Field Slots
     if (!card) {
         let btnValue = '';
-        if (!isAi && selectedCard?.supertype === 'Pokémon' && selectedCard?.subtypes?.includes('Basic')) {
+        
+        // If the player has ANY card selected, make friendly empty slots clickable
+        if (!isAi && selectedCard) {
             btnValue = `/tcg place ${targetSlot}`;
         }
 
         if (btnValue) {
-            // Targetable empty slot (Highlight blue and make clickable)
+            // Targetable empty slot
             return `<button name="send" value="${btnValue}" style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 6px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; color: #007bff; font-weight: bold; font-size: 11px; background: rgba(0, 123, 255, 0.1); cursor: pointer; box-sizing: border-box; padding: 0;">Place<br/>Here</button>`;
         } else {
-            // Un-targetable empty slot
+            // Un-targetable empty slot (No card selected, or AI's board)
             return `<div style="width: 75px; height: 104px; border: ${borderDashed}; border-radius: 6px; display: inline-block; vertical-align: top; margin: 1px; text-align: center; line-height: 104px; color: #888; font-size: 10px; box-sizing: border-box;">Empty</div>`;
         }
     }
@@ -46,12 +48,13 @@ function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench
     if (context === 'hand' && !isAi) {
         btnValue = isSelected ? `/tcg deselect` : `/tcg select ${card.uid}`;
     } 
-    // Field cards act as targets for energy, or as attackers
+    // Friendly Field cards act as targets for energy, or as attackers
     else if ((context === 'active' || context === 'bench') && !isAi) {
-        if (selectedCard?.supertype === 'Energy') {
+        if (selectedCard) {
+            // If ANYTHING is selected, clicking an occupied slot tries to attach it (The backend rejects if it's not energy)
             btnValue = `/tcg attach ${targetSlot}`;
         } else if (!selectedCard && context === 'active' && card.attacks && card.attacks.length > 0) {
-            // If the active Pokémon is clicked without anything selected in hand, use its first attack
+            // Attack!
             btnValue = `/tcg attack 0`; 
         }
     }
@@ -70,7 +73,7 @@ function renderSlot(card: InGameCard | null, context: 'hand' | 'active' | 'bench
         html += `</button>`;
     }
 
-    // Overlay Damage and Energy counters ON TOP of the image so no bottom space is used
+    // Overlay Damage and Energy
     if (card.currentDamage > 0) {
          html += `<div style="position: absolute; top: 2px; right: 2px; color: white; background: red; font-weight: bold; border-radius: 3px; font-size: 9px; padding: 1px 3px; border: 1px solid white; pointer-events: none;">${card.currentDamage}</div>`;
     }
@@ -116,7 +119,7 @@ export const commands: Chat.ChatCommands = {
             if (match.playBasicPokemon(true, match.player.selectedUid, slot)) {
                 this.refreshPage('tcg-match');
             } else {
-                this.errorReply("Cannot place card there.");
+                this.errorReply("Cannot place card there. Are you sure it's a Basic Pokémon?");
             }
         },
 
@@ -129,7 +132,7 @@ export const commands: Chat.ChatCommands = {
             if (match.attachEnergy(true, match.player.selectedUid, slot)) {
                 this.refreshPage('tcg-match');
             } else {
-                this.errorReply("Cannot attach Energy there.");
+                this.errorReply("Cannot attach that card there. Are you sure it's Energy?");
             }
         },
 
