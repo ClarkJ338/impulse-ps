@@ -9,7 +9,7 @@ import { getPowerRequirements } from './power-effects';
 
 let baseSetData: TCGCard[] = [];
 try {
-    const rawData = FS('impulse/chat-plugins/TCG-SIM/base1.json').readIfExistsSync();
+    const rawData = FS('impulse/chat-plugins/tcg-test/base1.json').readIfExistsSync();
     if (rawData) {
         const parsed = JSON.parse(rawData);
         baseSetData = Array.isArray(parsed) ? parsed : (parsed.data || []);
