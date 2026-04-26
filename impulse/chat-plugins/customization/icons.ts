@@ -223,7 +223,7 @@ export const commands: Chat.ChatCommands = {
 				`<div style="max-height: 350px; overflow-y: auto;"><center><strong><h4>Custom Icon Commands</strong></h4><hr>Commands Alias: /ic</center><hr>` +
 				`<b>/icon set [user], [url], [size]</b> - Set icon (${DEFAULT_ICON_SIZE}-${MAX_SIZE}px). Requires: ~<hr>` +
 				`<b>/icon update [user], [url], [size]</b> - Update icon. Requires: ~<hr>` +
-				`<b>/icon delete [user]</b> - Remove icon. Requires: ~<hr></div>`
+				`<b>/icon delete [user]</b> - Remove icon. Requires: ~</div>`
 			);
 		},
 	},
