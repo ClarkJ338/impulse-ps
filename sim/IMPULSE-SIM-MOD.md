@@ -4,7 +4,7 @@ Welcome to the Impulse Server! This server features a custom mechanics mod that 
 
 This is perfect for creating custom scenarios, testing specific mechanics (like Guts or Blaze), or building unique challenge modes.
 
-## 📖 How It Works
+## How It Works
 
 Because we use the official public Pokémon Showdown client (`play.pokemonshowdown.com`) to connect to our custom server, we have to bypass the client's strict teambuilder validation. If you try to type `HP: 20%` normally, your browser will delete it before it reaches our server!
 
@@ -12,7 +12,7 @@ To get around this, we use the **Nickname Hack**. You can encode your custom HP 
 
 ---
 
-## 🛠️ Formatting Syntax
+## Formatting Syntax
 
 Add the following tags to your Pokémon's nickname in the Teambuilder:
 
@@ -39,7 +39,7 @@ Add the following tags to your Pokémon's nickname in the Teambuilder:
 
 ---
 
-## 📋 Examples
+## Examples
 
 ### 1. Custom HP and Status (With a Nickname)
 
@@ -98,7 +98,7 @@ Jolly Nature
 
 ---
 
-## ⚙️ Engine Features
+## Engine Features
 
 This mod is fully integrated into the core battle engine:
 
@@ -108,7 +108,7 @@ This mod is fully integrated into the core battle engine:
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
 - You cannot legitimately nickname a Pokémon `[H:50]` or `[S:brn]` without triggering the hack — the server will always intercept those tags.
 - **Volatile statuses** (Confusion, Taunt, Leech Seed, etc.) are **not supported**. Only the major status conditions listed above will work.
