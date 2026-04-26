@@ -1,5 +1,4 @@
 /*
-* Pokemon Showdown
 * Files chat-plugin
 * Allows reading, deleting, uploading and more from chatrooms.
 * @author PrinceSky-Git
