@@ -86,6 +86,9 @@ function setupGlobals() {
 		global.__version.tree = hash;
 	});
 
+	// Make Impulse namespace global
+	global.Impulse = {};
+
 	const { Dex } = require('../sim/dex');
 	global.Dex = Dex;
 	global.toID = Dex.toID;
