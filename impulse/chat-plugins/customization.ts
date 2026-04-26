@@ -7,8 +7,8 @@
 ************************************************/
 import * as crypto from 'crypto';
 import https from 'https';
-import { FS, Utils } from '/../../lib';
-import { toID } from '/../../sim/dex';
+import { FS, Utils } from '../../lib';
+import { toID } from '../../sim/dex';
 import { ensureCustomCSS } from '../impulse-utils';
 
 const STAFF_ROOM_ID = 'staff';
