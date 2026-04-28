@@ -12,7 +12,7 @@ export const Formats: FormatList = [
 			'pokeroguerules',
 		],
 		defaultLevel: 5,
-		maxLevel: 200,
+		MaxLevel: 200,
 		banlist: [],
 	},
 ];
