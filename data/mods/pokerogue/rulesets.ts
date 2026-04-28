@@ -4,24 +4,35 @@ export const Rulesets: {[k: string]: FormatData} = {
 		name: 'PokeRogue Rules',
 		desc: 'Applies Boss Shields to designated Pokémon and handles custom scaling.',
 		
-		// Run before the battle starts to clean nicknames and load custom data
 		onBegin() {
+			// A dictionary to translate our shortcodes back into full Showdown item IDs
+			const berryMap: {[k: string]: string} = {
+				'sit': 'sitrusberry',
+				'lum': 'lumberry',
+				'eni': 'enigmaberry',
+				'ora': 'oranberry',
+				'lep': 'leppaberry',
+				'che': 'chestoberry',
+				'pea': 'pechaberry'
+			};
+
 			for (const pokemon of this.getAllPokemon()) {
-				// Search for our custom berry tag: e.g., [B:sitrusberry,enigmaberry]
+				// Search for the shortcode tag (e.g., [B:sit,lum])
 				const berryMatch = pokemon.name.match(/\[B:(.+?)\]/i);
 				
 				if (berryMatch) {
-					// Extract the berries, clean the strings, and store them in the hidden inventory
-					pokemon.m.shieldBerries = berryMatch[1].split(',').map(b => b.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+					// Extract the shortcodes, map them to real berries (fallback to sitrus if typo'd)
+					const codes = berryMatch[1].split(',');
+					pokemon.m.shieldBerries = codes.map(c => berryMap[c.trim().toLowerCase()] || 'sitrusberry');
 					
-					// Erase the tag from the Pokémon's name so it doesn't show up in the battle UI
-					pokemon.name = pokemon.name.replace(/\s?\[B:.+?\]/i, '');
-					pokemon.fullname = `${pokemon.side.id}: ${pokemon.name}`;
+					// CRITICAL FIX: Erase the tag entirely and restore the proper Species Name!
+					pokemon.name = pokemon.species.name;
+					// Showdown requires fullname to be updated too (e.g., "p2: Eternatus")
+					pokemon.fullname = `${pokemon.side.id}: ${pokemon.species.name}`;
 				}
 			}
 		},
 
-		// Apply the visual shield effect when they actually enter the field
 		onSwitchIn(pokemon) {
 			if (pokemon.side.id === 'p2') { 
 				
@@ -37,7 +48,6 @@ export const Rulesets: {[k: string]: FormatData} = {
 						pokemon.m.maxShields = 2; 
 						if (!pokemon.m.shieldBerries) pokemon.m.shieldBerries = ['oranberry'];
 					}
-					
 					pokemon.addVolatile('bossshield');
 				} 
 				
