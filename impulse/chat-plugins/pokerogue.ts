@@ -7,7 +7,7 @@ import {ObjectReadWriteStream} from '../../lib/streams';
 import {StreamWorker} from '../../lib/process-manager';
 
 // =======================================================================
-// 1. AI BOT INFRASTRUCTURE 
+// 1. AI BOT INFRASTRUCTURE & STATE TRACKING
 // =======================================================================
 
 class NoopStream extends ObjectReadWriteStream<string> {
@@ -17,10 +17,18 @@ class NoopStream extends ObjectReadWriteStream<string> {
 const noopWorker = new StreamWorker(new NoopStream());
 let botCounter = 0;
 const botBattleHandlers = new Map<string, (roomid: string, requestLine: string) => void>();
+
+// State tracker to remember what Pokémon the player has on the field
+interface BotState {
+	opponentActiveSpecies: string;
+}
+const botStates = new Map<string, BotState>();
+
 const TRAINER_NAME = 'PokéRogue Challenger';
 
 export function destroyBotUser(botUser: User): void {
 	botBattleHandlers.delete(botUser.id);
+	botStates.delete(botUser.id);
 	for (const c of botUser.connections.slice()) {
 		c.onDisconnect();
 	}
@@ -50,10 +58,26 @@ function createBotUser(playerId: string): User {
 	(botUser as any).name = TRAINER_NAME;
 	(botUser as any).named = false;
 
+	// Initialize the state tracker for this bot
+	botStates.set(botUser.id, { opponentActiveSpecies: '' });
+
 	(botUser as any).sendTo = function (roomid: RoomID | BasicRoom | null, data: string) {
 		if (typeof data === 'string') {
 			const lines = data.split('\n');
 			for (const line of lines) {
+				
+				// Tracker: Watch the battle log to see what the Player (p1) sends out
+				if (line.startsWith('|switch|p1a: ') || line.startsWith('|drag|p1a: ') || line.startsWith('|detailschange|p1a: ')) {
+					const parts = line.split('|');
+					if (parts.length >= 4) {
+						// Extract "Tinkaton" from "Tinkaton, L10"
+						const details = parts[3];
+						const species = details.split(',')[0]; 
+						const state = botStates.get(botUser.id);
+						if (state) state.opponentActiveSpecies = species;
+					}
+				}
+
 				if (line.startsWith('|request|')) {
 					const roomidStr = typeof roomid === 'string' ? roomid : (roomid as any)?.roomid ?? '';
 					setTimeout(() => {
@@ -70,7 +94,7 @@ function createBotUser(playerId: string): User {
 }
 
 // Improved AI Choice Logic
-function makeAIChoice(requestJson: string, battleObj: any, botSlot: string): string {
+function makeAIChoice(requestJson: string, botId: string): string {
 	let request: any;
 	try {
 		request = JSON.parse(requestJson.startsWith('|request|') ? requestJson.slice(9) : requestJson);
@@ -116,21 +140,18 @@ function makeAIChoice(requestJson: string, battleObj: any, botSlot: string): str
 
 	if (request.active) {
 		const choicesList: string[] = [];
-		const playerSlot = botSlot === 'p1' ? 'p2' : 'p1';
-		const botSide = battleObj.sides.find((s: any) => s.id === botSlot);
-		const playerSide = battleObj.sides.find((s: any) => s.id === playerSlot);
+
+		// Retrieve what the bot knows about the opponent from the state tracker
+		const state = botStates.get(botId);
+		const opponentSpecies = Dex.species.get(state?.opponentActiveSpecies || '');
 
 		for (let i = 0; i < (request.active as any[]).length; i++) {
 			const active = (request.active as any[])[i];
-			const pokemon = request.side?.pokemon?.[i];
-
-			const botActive = botSide?.active[i];
-			const playerActive = playerSide?.active[i];
-
-			if (!pokemon || pokemon.condition?.endsWith(' fnt') || pokemon.commanding) {
-				choicesList.push('pass');
-				continue;
-			}
+			
+			// Figure out what Pokémon the bot has currently active to calculate STAB
+			const botActiveMon = request.side?.pokemon?.find((p: any) => p.active);
+			const botSpeciesName = botActiveMon ? botActiveMon.details.split(',')[0] : '';
+			const botSpecies = Dex.species.get(botSpeciesName);
 
 			const moves: any[] = active?.moves ?? [];
 			const usableMoves = moves.filter((m: any) => !m.disabled && (m.pp ?? 1) > 0);
@@ -142,26 +163,31 @@ function makeAIChoice(requestJson: string, battleObj: any, botSlot: string): str
 					let bp = moveData.basePower ?? 0;
 					let score = bp;
 
-					if (bp > 0 && playerActive && !playerActive.fainted) {
+					if (bp > 0) {
 						let typeMod = 1;
 
-						if (!Dex.getImmunity(moveData.type, playerActive)) {
-							typeMod = 0;
-						} else {
-							for (const type of playerActive.types) {
-								const mod = Dex.getEffectiveness(moveData.type, type);
-								if (mod > 0) typeMod *= Math.pow(2, mod);
-								if (mod < 0) typeMod /= Math.pow(2, Math.abs(mod));
+						// Calculate Super-Effective vs the Player's tracked Pokémon
+						if (opponentSpecies && opponentSpecies.exists) {
+							if (!Dex.getImmunity(moveData.type, opponentSpecies)) {
+								typeMod = 0; // Move does no damage (immunity)
+							} else {
+								for (const type of opponentSpecies.types) {
+									const mod = Dex.getEffectiveness(moveData.type, type);
+									if (mod > 0) typeMod *= Math.pow(2, mod);
+									if (mod < 0) typeMod /= Math.pow(2, Math.abs(mod));
+								}
 							}
 						}
 
-						if (botActive && botActive.types.includes(moveData.type)) {
+						// Calculate STAB for the bot
+						if (botSpecies && botSpecies.exists && botSpecies.types.includes(moveData.type)) {
 							typeMod *= 1.5;
 						}
 
 						score = bp * typeMod;
 					}
 
+					// Fallback for status moves if damage moves are ineffective
 					if (bp === 0 && moveData.category === 'Status') {
 						score = 10;
 					}
@@ -169,6 +195,7 @@ function makeAIChoice(requestJson: string, battleObj: any, botSlot: string): str
 					return { m, score };
 				});
 
+				// Sort by the highest damage outcome
 				scored.sort((a: any, b: any) => b.score - a.score);
 				chosen = `move ${moves.indexOf(scored[0].m) + 1}`;
 			} else {
@@ -212,14 +239,13 @@ export const commands: Chat.ChatCommands = {
 
 			this.sendReplyBox(`<b>Starting a new PokéRogue run!</b><br />Entering Wave 10...`);
 
-			// Use JSON arrays and let the engine pack them safely
 			const playerTeamJSON: PokemonSet[] = [
 				{
 					name: "Tinkaton", species: "Tinkaton", item: "Leftovers", ability: "Mold Breaker",
 					moves: ["Play Rough", "Gigaton Hammer", "Swords Dance", "Roost"],
 					nature: "Adamant", evs: {hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0},
-					level: 10, hp: 100 // Uses your custom HP modification
-				} as any // Cast to 'any' if TypeScript complains about the custom 'hp' property on standard sets
+					level: 10, hp: 100 
+				} as any 
 			];
 			const playerTeam = Teams.pack(playerTeamJSON);
 
@@ -262,7 +288,9 @@ export const commands: Chat.ChatCommands = {
 			botBattleHandlers.set(botUser.id, (roomid, requestLine) => {
 				const roomObj = Rooms.get(roomid as RoomID);
 				if (!roomObj?.battle) return;
-				const choice = makeAIChoice(requestLine, roomObj.battle, botSlot);
+				
+				// Changed: Passed botUser.id instead of the full battleObj
+				const choice = makeAIChoice(requestLine, botUser.id);
 				void roomObj.battle.stream.write(`>${botSlot} ${choice}`);
 			});
 
