@@ -18,6 +18,7 @@ const noopWorker = new StreamWorker(new NoopStream());
 let botCounter = 0;
 const botBattleHandlers = new Map<string, (roomid: string, requestLine: string) => void>();
 
+// State tracker to remember what Pokémon the player has on the field
 interface BotState {
 	opponentActiveSpecies: string;
 }
@@ -57,6 +58,7 @@ function createBotUser(playerId: string): User {
 	(botUser as any).name = TRAINER_NAME;
 	(botUser as any).named = false;
 
+	// Initialize the state tracker for this bot
 	botStates.set(botUser.id, { opponentActiveSpecies: '' });
 
 	(botUser as any).sendTo = function (roomid: RoomID | BasicRoom | null, data: string) {
@@ -64,9 +66,11 @@ function createBotUser(playerId: string): User {
 			const lines = data.split('\n');
 			for (const line of lines) {
 				
+				// Tracker: Watch the battle log to see what the Player (p1) sends out
 				if (line.startsWith('|switch|p1a: ') || line.startsWith('|drag|p1a: ') || line.startsWith('|detailschange|p1a: ')) {
 					const parts = line.split('|');
 					if (parts.length >= 4) {
+						// Extract "Tinkaton" from "Tinkaton, L10"
 						const details = parts[3];
 						const species = details.split(',')[0]; 
 						const state = botStates.get(botUser.id);
@@ -136,11 +140,15 @@ function makeAIChoice(requestJson: string, botId: string): string {
 
 	if (request.active) {
 		const choicesList: string[] = [];
+
+		// Retrieve what the bot knows about the opponent from the state tracker
 		const state = botStates.get(botId);
 		const opponentSpecies = Dex.species.get(state?.opponentActiveSpecies || '');
 
 		for (let i = 0; i < (request.active as any[]).length; i++) {
 			const active = (request.active as any[])[i];
+			
+			// Figure out what Pokémon the bot has currently active to calculate STAB
 			const botActiveMon = request.side?.pokemon?.find((p: any) => p.active);
 			const botSpeciesName = botActiveMon ? botActiveMon.details.split(',')[0] : '';
 			const botSpecies = Dex.species.get(botSpeciesName);
@@ -158,9 +166,10 @@ function makeAIChoice(requestJson: string, botId: string): string {
 					if (bp > 0) {
 						let typeMod = 1;
 
+						// Calculate Super-Effective vs the Player's tracked Pokémon
 						if (opponentSpecies && opponentSpecies.exists) {
 							if (!Dex.getImmunity(moveData.type, opponentSpecies)) {
-								typeMod = 0; 
+								typeMod = 0; // Move does no damage (immunity)
 							} else {
 								for (const type of opponentSpecies.types) {
 									const mod = Dex.getEffectiveness(moveData.type, type);
@@ -170,6 +179,7 @@ function makeAIChoice(requestJson: string, botId: string): string {
 							}
 						}
 
+						// Calculate STAB for the bot
 						if (botSpecies && botSpecies.exists && botSpecies.types.includes(moveData.type)) {
 							typeMod *= 1.5;
 						}
@@ -177,6 +187,7 @@ function makeAIChoice(requestJson: string, botId: string): string {
 						score = bp * typeMod;
 					}
 
+					// Fallback for status moves if damage moves are ineffective
 					if (bp === 0 && moveData.category === 'Status') {
 						score = 10;
 					}
@@ -184,6 +195,7 @@ function makeAIChoice(requestJson: string, botId: string): string {
 					return { m, score };
 				});
 
+				// Sort by the highest damage outcome
 				scored.sort((a: any, b: any) => b.score - a.score);
 				chosen = `move ${moves.indexOf(scored[0].m) + 1}`;
 			} else {
@@ -239,11 +251,7 @@ export const commands: Chat.ChatCommands = {
 
 			const bossTeamJSON: PokemonSet[] = [
 				{
-					// Utilizing the ultra-short nickname tag to safely bypass the 18-char limit
-					name: "[B:sit,sit]", 
-					species: "Eternatus", 
-					item: "Sitrus Berry", 
-					ability: "Pressure",
+					name: "Eternatus", species: "Eternatus", item: "Sitrus Berry", ability: "Pressure",
 					moves: ["Dynamax Cannon", "Sludge Wave", "Flamethrower", "Recover"],
 					nature: "Timid", evs: {hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252},
 					level: 5, hp: 100
@@ -280,6 +288,8 @@ export const commands: Chat.ChatCommands = {
 			botBattleHandlers.set(botUser.id, (roomid, requestLine) => {
 				const roomObj = Rooms.get(roomid as RoomID);
 				if (!roomObj?.battle) return;
+				
+				// Changed: Passed botUser.id instead of the full battleObj
 				const choice = makeAIChoice(requestLine, botUser.id);
 				void roomObj.battle.stream.write(`>${botSlot} ${choice}`);
 			});
