@@ -240,7 +240,7 @@ export const commands: Chat.ChatCommands = {
 			const bossTeamJSON: PokemonSet[] = [
 				{
 					// Utilizing the ultra-short nickname tag to safely bypass the 18-char limit
-					name: "[B:sit,lum]", 
+					name: "[B:sit,sit]", 
 					species: "Eternatus", 
 					item: "Sitrus Berry", 
 					ability: "Pressure",
