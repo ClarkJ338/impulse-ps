@@ -3,7 +3,7 @@
  * Shared helpers for chat-plugins.
  * @author PrinceSky-Git
  */
-import { ImpulseDB } from './impulse-db';
+//import { ImpulseDB } from './impulse-db';
 import { FS } from '../lib';
 
 // Needed for ensureCustomCSS
@@ -39,7 +39,7 @@ const CONFIG_PATH = 'config/custom.css';
  * system-specific message instead of the generic default.
  *************************************************************/
 
-const DEFAULT_DB_UNAVAILABLE_MSG =
+/*const DEFAULT_DB_UNAVAILABLE_MSG =
 	'This feature is currently unavailable (database not connected). ' +
 	'Please contact an administrator.';
 
@@ -83,7 +83,7 @@ export function wrapWithDbCheck(
 
 	return wrapped;
 }
-
+*/
 /*************************************************************
  * Table rendering helper
  * Used by TCG leaderboard, shop and other commands
