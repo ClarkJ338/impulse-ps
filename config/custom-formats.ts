@@ -11,7 +11,7 @@ export const Formats: FormatList = [
 			'HP Percentage Mod',
 			'pokeroguerules',
 		],
-		defaultLevel: 5,
+		DefaultLevel: 5,
 		MaxLevel: 200,
 		banlist: [],
 	},
