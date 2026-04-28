@@ -2,6 +2,7 @@ import {Chat} from '../../server/chat';
 import {Rooms} from '../../server/rooms';
 import {Users, User} from '../../server/users';
 import {Dex} from '../../sim/dex';
+import {Teams} from '../../sim/teams';
 import {ObjectReadWriteStream} from '../../lib/streams';
 import {StreamWorker} from '../../lib/process-manager';
 
@@ -211,9 +212,26 @@ export const commands: Chat.ChatCommands = {
 
 			this.sendReplyBox(`<b>Starting a new PokéRogue run!</b><br />Entering Wave 10...`);
 
-			// Test Team: Level 10 Tinkaton to survive Eternatus and test shield mechanics safely
-			const playerTeam = `Tinkaton||leftovers|moldbreaker|playrough,gigatonhammer,swordsdance,roost|Adamant|252,252,4,,,|||||10,,,,,100,]`;
-			const bossTeam = `Eternatus||sitrusberry|pressure|dynamaxcannon,sludgewave,flamethrower,recover|Timid|4,,,252,,252|||||5,,,,,100,]`;
+			// Use JSON arrays and let the engine pack them safely
+			const playerTeamJSON: PokemonSet[] = [
+				{
+					name: "Tinkaton", species: "Tinkaton", item: "Leftovers", ability: "Mold Breaker",
+					moves: ["Play Rough", "Gigaton Hammer", "Swords Dance", "Roost"],
+					nature: "Adamant", evs: {hp: 252, atk: 252, def: 4, spa: 0, spd: 0, spe: 0},
+					level: 10, hp: 100 // Uses your custom HP modification
+				} as any // Cast to 'any' if TypeScript complains about the custom 'hp' property on standard sets
+			];
+			const playerTeam = Teams.pack(playerTeamJSON);
+
+			const bossTeamJSON: PokemonSet[] = [
+				{
+					name: "Eternatus", species: "Eternatus", item: "Sitrus Berry", ability: "Pressure",
+					moves: ["Dynamax Cannon", "Sludge Wave", "Flamethrower", "Recover"],
+					nature: "Timid", evs: {hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252},
+					level: 5, hp: 100
+				} as any
+			];
+			const bossTeam = Teams.pack(bossTeamJSON);
 
 			const botUser = createBotUser(user.id);
 			const botSlot = 'p2' as const;
@@ -223,7 +241,6 @@ export const commands: Chat.ChatCommands = {
 			try {
 				battleRoom = Rooms.createBattle({
 					format: 'gen9pokeroguecampaign',
-					// FIX: Use the players array instead of p1/p2
 					players: [
 						{ user: user, team: playerTeam },
 						{ user: botUser, team: bossTeam },
