@@ -218,19 +218,24 @@ export const commands: Chat.ChatCommands = {
 			const botUser = createBotUser(user.id);
 			const botSlot = 'p2' as const;
 
-			const battleRoom = Rooms.createBattle({
-				format: 'gen9pokeroguecampaign',
-				p1: {
-					user: user,
-					team: playerTeam,
-				},
-				p2: {
-					user: botUser,
-					team: bossTeam,
-				},
-				rated: false,
-				tour: false,
-			});
+			let battleRoom: AnyObject | null = null;
+			
+			try {
+				battleRoom = Rooms.createBattle({
+					format: 'gen9pokeroguecampaign',
+					// FIX: Use the players array instead of p1/p2
+					players: [
+						{ user: user, team: playerTeam },
+						{ user: botUser, team: bossTeam },
+					],
+					rated: false,
+					tour: false,
+				});
+			} catch (e) {
+				destroyBotUser(botUser);
+				Monitor.crashlog(e as Error, 'PokéRogue battle creation');
+				return this.errorReply("Failed to create the PokéRogue battle room due to an internal error.");
+			}
 
 			if (!battleRoom) {
 				destroyBotUser(botUser);
