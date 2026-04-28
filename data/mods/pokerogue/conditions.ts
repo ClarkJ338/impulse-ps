@@ -4,7 +4,6 @@ export const Conditions: {[k: string]: ConditionData} = {
 		noCopy: true,
 		
 		onStart(pokemon) {
-			// If a specific shield count wasn't set by rulesets, default to 4
 			if (!pokemon.m.maxShields) {
 				pokemon.m.maxShields = 4;
 			}
@@ -37,10 +36,27 @@ export const Conditions: {[k: string]: ConditionData} = {
 			if (target && target.m.shieldJustBroken) {
 				target.m.shieldJustBroken = false;
 				
+				// Step 1: If their primary held item is a berry, eat it first
 				if (target.item) {
 					const item = target.getItem();
 					if (item.isBerry) {
 						target.eatItem(true);
+					}
+				}
+
+				// Step 2: Check their hidden "shieldBerries" bag for backups
+				if (target.m.shieldBerries && target.m.shieldBerries.length > 0) {
+					const nextBerryId = target.m.shieldBerries.shift(); 
+					const originalItem = target.item; 
+					
+					// Temporarily equip the reserve berry and force them to eat it
+					target.setItem(nextBerryId);
+					this.add('-message', `${target.name} pulled a ${target.getItem().name} from its reserves!`);
+					target.eatItem(true);
+					
+					// Give them their original item back
+					if (originalItem) {
+						target.setItem(originalItem);
 					}
 				}
 			}
