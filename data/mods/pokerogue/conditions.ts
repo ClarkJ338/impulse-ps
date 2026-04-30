@@ -337,7 +337,8 @@ export const Conditions: {[k: string]: ConditionData} = {
 		noCopy: true,
 
 		onStart(pokemon) {
-			if (!pokemon.m.maxShields) {
+			// Safely check for undefined so 0 doesn't accidentally become 4
+			if (pokemon.m.maxShields === undefined) {
 				pokemon.m.maxShields = 4;
 			}
 
@@ -396,7 +397,7 @@ export const Conditions: {[k: string]: ConditionData} = {
 			target.m.pendingShieldTriggers = [];
 			const breakSource = target.m.lastShieldBreakSource ?? null;
 
-			// NEW PARSER: Splits by comma first, then by colon to support arguments!
+			// Splits by comma first, then by colon to support arguments!
 			for (const triggerStrRaw of triggers) {
 				if (!triggerStrRaw) continue;
 				
