@@ -1,41 +1,37 @@
 // Shield break trigger options.
 // Each key is a trigger name you can assign to a shield slot via pokemon.m.shieldTriggers.
-// Every trigger is optional — assign null (or omit) for no effect on that shield.
-// Multiple triggers can be combined per shield via an array: ['heal', 'boost', 'sun']
+// You can pass arguments to triggers using a colon, e.g., 'abilityChange:speedboost'
+// You can combine multiple triggers in a single string using commas, e.g., 'heal25, sun, atkBoost2'
 //
 // Usage in rulesets:
 //   pokemon.m.shieldTriggers = [
-//     'heal',              // first shield break: heal
-//     ['boost', 'sun'],    // second shield break: boost + set sun
-//     null,                // third shield break: nothing
-//     'spdBoost',          // fourth shield break: speed boost
+//     'heal25',                                // first shield break: heal
+//     'atkBoost2, sun',                        // second shield break: boost + set sun
+//     'abilityChange:hugepower, speBoost2',    // third shield break: change ability + boost speed
+//     null,                                    // fourth shield break: nothing
 //   ];
 
-export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, source: Pokemon | null) => void} = {
+export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, source: Pokemon | null, arg?: string) => void} = {
 
 	// -------------------------
 	// Healing
 	// -------------------------
 
-	// Heals the boss for 25% of its max HP
 	heal25(target, source) {
 		this.heal(Math.floor(target.maxhp * 0.25), target);
 		this.add('-message', `${target.name} recovered some HP after the shield broke!`);
 	},
 
-	// Heals the boss for 50% of its max HP
 	heal50(target, source) {
 		this.heal(Math.floor(target.maxhp * 0.5), target);
 		this.add('-message', `${target.name} recovered a lot of HP after the shield broke!`);
 	},
 
-	// Fully restores the boss's HP
 	healFull(target, source) {
 		this.heal(target.maxhp, target);
 		this.add('-message', `${target.name} fully restored its HP after the shield broke!`);
 	},
 
-	// Eats the boss's held berry if it has one
 	berry(target, source) {
 		if (target.item) {
 			const item = target.getItem();
@@ -47,185 +43,49 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 	// Boss stat boosts
 	// -------------------------
 
-	// +1 Attack
-	atkBoost1(target, source) {
-		this.boost({ atk: 1 }, target);
-		this.add('-message', `${target.name}'s Attack rose after the shield broke!`);
-	},
+	atkBoost1(target) { this.boost({ atk: 1 }, target); this.add('-message', `${target.name}'s Attack rose after the shield broke!`); },
+	atkBoost2(target) { this.boost({ atk: 2 }, target); this.add('-message', `${target.name}'s Attack sharply rose after the shield broke!`); },
+	atkBoost4(target) { this.boost({ atk: 4 }, target); this.add('-message', `${target.name}'s Attack drastically rose after the shield broke!`); },
 
-	// +2 Attack
-	atkBoost2(target, source) {
-		this.boost({ atk: 2 }, target);
-		this.add('-message', `${target.name}'s Attack sharply rose after the shield broke!`);
-	},
+	defBoost1(target) { this.boost({ def: 1 }, target); this.add('-message', `${target.name}'s Defense rose after the shield broke!`); },
+	defBoost2(target) { this.boost({ def: 2 }, target); this.add('-message', `${target.name}'s Defense sharply rose after the shield broke!`); },
+	defBoost4(target) { this.boost({ def: 4 }, target); this.add('-message', `${target.name}'s Defense drastically rose after the shield broke!`); },
 
-	// +4 Attack
-	atkBoost4(target, source) {
-		this.boost({ atk: 4 }, target);
-		this.add('-message', `${target.name}'s Attack drastically rose after the shield broke!`);
-	},
+	spaBoost1(target) { this.boost({ spa: 1 }, target); this.add('-message', `${target.name}'s Sp. Atk rose after the shield broke!`); },
+	spaBoost2(target) { this.boost({ spa: 2 }, target); this.add('-message', `${target.name}'s Sp. Atk sharply rose after the shield broke!`); },
+	spaBoost4(target) { this.boost({ spa: 4 }, target); this.add('-message', `${target.name}'s Sp. Atk drastically rose after the shield broke!`); },
 
-	// +1 Defense
-	defBoost1(target, source) {
-		this.boost({ def: 1 }, target);
-		this.add('-message', `${target.name}'s Defense rose after the shield broke!`);
-	},
+	spdBoost1(target) { this.boost({ spd: 1 }, target); this.add('-message', `${target.name}'s Sp. Def rose after the shield broke!`); },
+	spdBoost2(target) { this.boost({ spd: 2 }, target); this.add('-message', `${target.name}'s Sp. Def sharply rose after the shield broke!`); },
+	spdBoost4(target) { this.boost({ spd: 4 }, target); this.add('-message', `${target.name}'s Sp. Def drastically rose after the shield broke!`); },
 
-	// +2 Defense
-	defBoost2(target, source) {
-		this.boost({ def: 2 }, target);
-		this.add('-message', `${target.name}'s Defense sharply rose after the shield broke!`);
-	},
+	speBoost1(target) { this.boost({ spe: 1 }, target); this.add('-message', `${target.name}'s Speed rose after the shield broke!`); },
+	speBoost2(target) { this.boost({ spe: 2 }, target); this.add('-message', `${target.name}'s Speed sharply rose after the shield broke!`); },
+	speBoost4(target) { this.boost({ spe: 4 }, target); this.add('-message', `${target.name}'s Speed drastically rose after the shield broke!`); },
 
-	// +4 Defense
-	defBoost4(target, source) {
-		this.boost({ def: 4 }, target);
-		this.add('-message', `${target.name}'s Defense drastically rose after the shield broke!`);
-	},
+	accBoost1(target) { this.boost({ accuracy: 1 }, target); this.add('-message', `${target.name}'s Accuracy rose after the shield broke!`); },
+	accBoost2(target) { this.boost({ accuracy: 2 }, target); this.add('-message', `${target.name}'s Accuracy sharply rose after the shield broke!`); },
 
-	// +1 Sp. Atk
-	spaBoost1(target, source) {
-		this.boost({ spa: 1 }, target);
-		this.add('-message', `${target.name}'s Sp. Atk rose after the shield broke!`);
-	},
-
-	// +2 Sp. Atk
-	spaBoost2(target, source) {
-		this.boost({ spa: 2 }, target);
-		this.add('-message', `${target.name}'s Sp. Atk sharply rose after the shield broke!`);
-	},
-
-	// +4 Sp. Atk
-	spaBoost4(target, source) {
-		this.boost({ spa: 4 }, target);
-		this.add('-message', `${target.name}'s Sp. Atk drastically rose after the shield broke!`);
-	},
-
-	// +1 Sp. Def
-	spdBoost1(target, source) {
-		this.boost({ spd: 1 }, target);
-		this.add('-message', `${target.name}'s Sp. Def rose after the shield broke!`);
-	},
-
-	// +2 Sp. Def
-	spdBoost2(target, source) {
-		this.boost({ spd: 2 }, target);
-		this.add('-message', `${target.name}'s Sp. Def sharply rose after the shield broke!`);
-	},
-
-	// +4 Sp. Def
-	spdBoost4(target, source) {
-		this.boost({ spd: 4 }, target);
-		this.add('-message', `${target.name}'s Sp. Def drastically rose after the shield broke!`);
-	},
-
-	// +1 Speed
-	speBoost1(target, source) {
-		this.boost({ spe: 1 }, target);
-		this.add('-message', `${target.name}'s Speed rose after the shield broke!`);
-	},
-
-	// +2 Speed
-	speBoost2(target, source) {
-		this.boost({ spe: 2 }, target);
-		this.add('-message', `${target.name}'s Speed sharply rose after the shield broke!`);
-	},
-
-	// +4 Speed
-	speBoost4(target, source) {
-		this.boost({ spe: 4 }, target);
-		this.add('-message', `${target.name}'s Speed drastically rose after the shield broke!`);
-	},
-
-	// +1 Accuracy
-	accBoost1(target, source) {
-		this.boost({ accuracy: 1 }, target);
-		this.add('-message', `${target.name}'s Accuracy rose after the shield broke!`);
-	},
-
-	// +2 Accuracy
-	accBoost2(target, source) {
-		this.boost({ accuracy: 2 }, target);
-		this.add('-message', `${target.name}'s Accuracy sharply rose after the shield broke!`);
-	},
-
-	// +1 Evasion
-	evaBoost1(target, source) {
-		this.boost({ evasion: 1 }, target);
-		this.add('-message', `${target.name}'s Evasion rose after the shield broke!`);
-	},
-
-	// +2 Evasion
-	evaBoost2(target, source) {
-		this.boost({ evasion: 2 }, target);
-		this.add('-message', `${target.name}'s Evasion sharply rose after the shield broke!`);
-	},
+	evaBoost1(target) { this.boost({ evasion: 1 }, target); this.add('-message', `${target.name}'s Evasion rose after the shield broke!`); },
+	evaBoost2(target) { this.boost({ evasion: 2 }, target); this.add('-message', `${target.name}'s Evasion sharply rose after the shield broke!`); },
 
 	// -------------------------
 	// Attacker stat drops
 	// -------------------------
 
-	// -1 Attack on attacker
-	atkDrop1(target, source) {
-		if (!source) return;
-		this.boost({ atk: -1 }, source);
-		this.add('-message', `${source.name}'s Attack fell after breaking the shield!`);
-	},
-
-	// -2 Attack on attacker
-	atkDrop2(target, source) {
-		if (!source) return;
-		this.boost({ atk: -2 }, source);
-		this.add('-message', `${source.name}'s Attack sharply fell after breaking the shield!`);
-	},
-
-	// -1 Defense on attacker
-	defDrop1(target, source) {
-		if (!source) return;
-		this.boost({ def: -1 }, source);
-		this.add('-message', `${source.name}'s Defense fell after breaking the shield!`);
-	},
-
-	// -2 Defense on attacker
-	defDrop2(target, source) {
-		if (!source) return;
-		this.boost({ def: -2 }, source);
-		this.add('-message', `${source.name}'s Defense sharply fell after breaking the shield!`);
-	},
-
-	// -1 Sp. Atk on attacker
-	spaDrop1(target, source) {
-		if (!source) return;
-		this.boost({ spa: -1 }, source);
-		this.add('-message', `${source.name}'s Sp. Atk fell after breaking the shield!`);
-	},
-
-	// -2 Sp. Atk on attacker
-	spaDrop2(target, source) {
-		if (!source) return;
-		this.boost({ spa: -2 }, source);
-		this.add('-message', `${source.name}'s Sp. Atk sharply fell after breaking the shield!`);
-	},
-
-	// -1 Speed on attacker
-	speDrop1(target, source) {
-		if (!source) return;
-		this.boost({ spe: -1 }, source);
-		this.add('-message', `${source.name}'s Speed fell after breaking the shield!`);
-	},
-
-	// -2 Speed on attacker
-	speDrop2(target, source) {
-		if (!source) return;
-		this.boost({ spe: -2 }, source);
-		this.add('-message', `${source.name}'s Speed sharply fell after breaking the shield!`);
-	},
+	atkDrop1(target, source) { if (source) { this.boost({ atk: -1 }, source); this.add('-message', `${source.name}'s Attack fell after breaking the shield!`); } },
+	atkDrop2(target, source) { if (source) { this.boost({ atk: -2 }, source); this.add('-message', `${source.name}'s Attack sharply fell after breaking the shield!`); } },
+	defDrop1(target, source) { if (source) { this.boost({ def: -1 }, source); this.add('-message', `${source.name}'s Defense fell after breaking the shield!`); } },
+	defDrop2(target, source) { if (source) { this.boost({ def: -2 }, source); this.add('-message', `${source.name}'s Defense sharply fell after breaking the shield!`); } },
+	spaDrop1(target, source) { if (source) { this.boost({ spa: -1 }, source); this.add('-message', `${source.name}'s Sp. Atk fell after breaking the shield!`); } },
+	spaDrop2(target, source) { if (source) { this.boost({ spa: -2 }, source); this.add('-message', `${source.name}'s Sp. Atk sharply fell after breaking the shield!`); } },
+	speDrop1(target, source) { if (source) { this.boost({ spe: -1 }, source); this.add('-message', `${source.name}'s Speed fell after breaking the shield!`); } },
+	speDrop2(target, source) { if (source) { this.boost({ spe: -2 }, source); this.add('-message', `${source.name}'s Speed sharply fell after breaking the shield!`); } },
 
 	// -------------------------
 	// Status on attacker
 	// -------------------------
 
-	// Burns the attacker
 	burn(target, source) {
 		if (source && !source.status) {
 			source.setStatus('brn');
@@ -233,7 +93,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Paralyzes the attacker
 	paralyze(target, source) {
 		if (source && !source.status) {
 			source.setStatus('par');
@@ -241,7 +100,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Poisons the attacker
 	poison(target, source) {
 		if (source && !source.status) {
 			source.setStatus('psn');
@@ -249,7 +107,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Badly poisons the attacker
 	toxic(target, source) {
 		if (source && !source.status) {
 			source.setStatus('tox');
@@ -257,7 +114,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Puts the attacker to sleep
 	sleep(target, source) {
 		if (source && !source.status) {
 			source.setStatus('slp');
@@ -265,7 +121,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Freezes the attacker
 	freeze(target, source) {
 		if (source && !source.status) {
 			source.setStatus('frz');
@@ -277,7 +132,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 	// Volatile status on attacker
 	// -------------------------
 
-	// Confuses the attacker
 	confuse(target, source) {
 		if (source) {
 			source.addVolatile('confusion');
@@ -285,7 +139,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Taunts the attacker
 	taunt(target, source) {
 		if (source) {
 			source.addVolatile('taunt');
@@ -293,7 +146,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Encores the attacker
 	encore(target, source) {
 		if (source) {
 			source.addVolatile('encore');
@@ -305,7 +157,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 	// Direct damage to attacker
 	// -------------------------
 
-	// Deals 12.5% max HP to attacker
 	recoil12(target, source) {
 		if (source) {
 			this.damage(Math.floor(source.maxhp * 0.125), source);
@@ -313,7 +164,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Deals 25% max HP to attacker
 	recoil25(target, source) {
 		if (source) {
 			this.damage(Math.floor(source.maxhp * 0.25), source);
@@ -321,7 +171,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 		}
 	},
 
-	// Deals 50% max HP to attacker
 	recoil50(target, source) {
 		if (source) {
 			this.damage(Math.floor(source.maxhp * 0.5), source);
@@ -448,32 +297,22 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 	},
 
 	// -------------------------
-	// Ability change on boss
+	// Dynamic Ability Change
 	// -------------------------
 
-	// Swaps the boss's ability to Speed Boost
-	abilitySpeedBoost(target, source) {
-		target.setAbility('speedboost');
-		this.add('-message', `${target.name}'s ability changed after the shield broke!`);
-	},
-
-	// Swaps the boss's ability to Regenerator
-	abilityRegenerator(target, source) {
-		target.setAbility('regenerator');
-		this.add('-message', `${target.name}'s ability changed after the shield broke!`);
-	},
-
-	// Swaps the boss's ability to Intimidate
-	abilityIntimidate(target, source) {
-		target.setAbility('intimidate');
-		this.add('-message', `${target.name}'s ability changed after the shield broke!`);
+	abilityChange(target, source, arg) {
+		if (!arg) return;
+		const ability = this.dex.abilities.get(arg);
+		if (ability.exists) {
+			target.setAbility(ability.id);
+			this.add('-message', `${target.name}'s ability changed to ${ability.name} after the shield broke!`);
+		}
 	},
 
 	// -------------------------
 	// Item removal from attacker
 	// -------------------------
 
-	// Strips the attacker's held item
 	stripItem(target, source) {
 		if (source && source.item) {
 			const itemName = source.getItem().name;
@@ -486,7 +325,6 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 	// Force switch attacker
 	// -------------------------
 
-	// Forces the attacker out after the move (like Roar)
 	forceSwitch(target, source) {
 		this.forceSwitchFlag = true;
 		this.add('-message', `${target.name} repelled ${source?.name ?? 'the attacker'} with the force of the shield breaking!`);
@@ -503,11 +341,6 @@ export const Conditions: {[k: string]: ConditionData} = {
 				pokemon.m.maxShields = 4;
 			}
 
-			// Each shield has its own HP pool equal to 100% of the Pokemon's max HP.
-			// Each shield slot can have a single trigger key or an array of trigger keys.
-			// e.g. pokemon.m.shieldTriggers = ['heal25', ['burn', 'spikes'], null, 'speBoost2']
-			// Index 0 = first shield to break, last index = final shield before fainting.
-			// Use null or omit an index to have no effect on that shield break.
 			pokemon.m.shields = Array.from({ length: pokemon.m.maxShields }, (_, i) => ({
 				hp: pokemon.maxhp,
 				triggerKeys: pokemon.m.shieldTriggers?.[i]
@@ -563,11 +396,25 @@ export const Conditions: {[k: string]: ConditionData} = {
 			target.m.pendingShieldTriggers = [];
 			const breakSource = target.m.lastShieldBreakSource ?? null;
 
-			for (const triggerKey of triggers) {
-				if (!triggerKey) continue;
-				const triggerFn = ShieldTriggers[triggerKey];
-				if (triggerFn) {
-					triggerFn.call(this, target, breakSource);
+			// NEW PARSER: Splits by comma first, then by colon to support arguments!
+			for (const triggerStrRaw of triggers) {
+				if (!triggerStrRaw) continue;
+				
+				// Support comma-separated strings like 'heal25, sun, abilityChange:hugepower'
+				const subTriggers = triggerStrRaw.split(',');
+				
+				for (let triggerStr of subTriggers) {
+					triggerStr = triggerStr.trim();
+					if (!triggerStr) continue;
+					
+					const parts = triggerStr.split(':');
+					const triggerKey = parts[0].trim();
+					const arg = parts.slice(1).join(':').trim(); 
+					
+					const triggerFn = ShieldTriggers[triggerKey];
+					if (triggerFn) {
+						triggerFn.call(this, target, breakSource, arg);
+					}
 				}
 			}
 		},
