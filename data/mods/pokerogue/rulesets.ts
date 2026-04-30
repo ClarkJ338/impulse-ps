@@ -4,7 +4,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 		name: 'PokeRogue Rules',
 		desc: 'Applies Boss Shields to designated Pokémon and handles custom scaling.',
 
-		onSwitchIn(pokemon) {
+		onStart(pokemon) {
 			if (pokemon.side.id === 'p2') { 
 				const sidePokemon = pokemon.side.pokemon;
 				const lastIndex = sidePokemon.length - 1;
