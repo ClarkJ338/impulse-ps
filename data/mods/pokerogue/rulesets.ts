@@ -6,26 +6,26 @@ export const Rulesets: {[k: string]: FormatData} = {
 
 		onStart(pokemon) {
     if (pokemon.side.id === 'p2') { 
-        // 1. Check for specific Boss identifiers
-        const isBossSpecies = ['Eternatus', 'Eternatus-Eternamax'].includes(pokemon.baseSpecies.name);
-        const isLoneBoss = pokemon.side.pokemon.length === 1;
-        
-        // 2. Identify if this is the "Ace" (last mon)
-        // We use pokemon.side.totalPokemon for a more accurate count in custom battles
-        const isLastMon = pokemon.side.pokemon.indexOf(pokemon) === (pokemon.side.totalPokemon - 1);
+        // 1. Identify Bosses by Species (Works regardless of team size)
+        const bossSpecies = ['Eternatus', 'Eternatus-Eternamax'];
+        const isBoss = bossSpecies.includes(pokemon.baseSpecies.name);
 
-        if (isBossSpecies || isLoneBoss || isLastMon) {
-            // Apply shield scaling based on level
+        // 2. Identify Trainer Aces using total team size
+        // side.pokemon.length grows as mons switch in, but side.totalPokemon is the full team size
+        const isAce = pokemon.side.pokemon.length === pokemon.side.totalPokemon;
+
+        if (isBoss || isAce) {
+            // Assign shield count based on Level
             if (pokemon.level >= 100) {
-                pokemon.m.maxShields = 4; 
+                pokemon.m.maxShields = 4;[cite: 1]
             } else if (pokemon.level >= 50) {
-                pokemon.m.maxShields = 3; 
+                pokemon.m.maxShields = 3;[cite: 1]
             } else {
-                pokemon.m.maxShields = 2; 
+                pokemon.m.maxShields = 2;[cite: 1]
             }
-            
-            // Adjust count specifically for Trainer Aces that aren't 'Bosses'
-            if (isLastMon && !isBossSpecies && !isLoneBoss) {
+
+            // Reduce shield count for non-boss Trainer Aces
+            if (isAce && !isBoss) {
                 pokemon.m.maxShields = 1;
             }
 
