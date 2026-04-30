@@ -1,24 +1,25 @@
 // Define specific shield counts for specific species here!
 // Key: species ID. Value: Number of shields.
 // This overrides the normal level-based scaling (e.g. giving Eternatus 5 shields).
+// Setting a value to 0 will completely disable shields for that species.
 const SPECIES_SHIELDS: { [k: string]: number } = {
 	'eternatus': 5,
 	'rayquaza': 4,
 	'kyogre': 4,
 	'groudon': 4,
+	'magikarp': 0, // Example of explicitly disabling shields
 };
 
 // Define your hand-crafted boss triggers here!
 // Key: species ID (lowercase, no spaces). Value: Array of shield triggers.
 const SPECIES_TRIGGERS: { [k: string]: (string | string[])[] } = {
-	'eternatus': ['toxicSpikes', 'defBoost2', 'spaBoost2, toxic', 'heal50', 'recoil50'], // 5 triggers for 5 shields
+	'eternatus': ['toxicSpikes', 'defBoost2', 'spaBoost2, toxic', 'heal50', 'recoil50'], // Custom bosses can still use toxic if you want!
 	'rayquaza': ['sun', 'atkBoost2', 'speBoost4', 'healFull'],
 	'kyogre': ['rain', 'spaBoost2', 'healFull, paralyze'],
 	'groudon': ['sandstorm', 'atkBoost2', 'healFull, burn'],
 	'charizard': ['sun', 'spaBoost2, burn', 'heal50'],
 	'slaking': ['abilityChange:hugepower', 'atkBoost2', 'healFull'],
 	'shedinja': ['abilityChange:wonderguard', 'healFull'],
-	// Add as many specific bosses as you want!
 };
 
 export const Rulesets: {[k: string]: FormatData} = {
@@ -35,26 +36,29 @@ export const Rulesets: {[k: string]: FormatData} = {
 				// Scenario A: Wild Boss Fight (Only apply if it's actually a Boss floor)
 				if (pokemon.side.pokemon.length === 1 && isBossFloor) {
 					
-					// 1. PRIORITY: Check for custom species shield counts
-					if (SPECIES_SHIELDS[pokemon.species.id]) {
+					// 1. PRIORITY: Check for custom species shield counts using !== undefined to safely allow 0
+					if (SPECIES_SHIELDS[pokemon.species.id] !== undefined) {
 						pokemon.m.maxShields = SPECIES_SHIELDS[pokemon.species.id];
 					} 
 					// 2. FALLBACK: Level-based scaling
-					else if (pokemon.level >= 100) {
-						pokemon.m.maxShields = 4; // Late game boss gets 4 shields
-					} else if (pokemon.level >= 50) {
-						pokemon.m.maxShields = 3; // Mid game boss gets 3 shields
+					else if (pokemon.level >= 150) {
+						pokemon.m.maxShields = 3; // Late game boss gets 4 shields
+					} else if (pokemon.level >= 100) {
+						pokemon.m.maxShields = 2; // Mid game boss gets 3 shields
 					} else {
-						pokemon.m.maxShields = 2; // Early game boss gets 2 shields
+						pokemon.m.maxShields = 1; // Early game boss gets 2 shields
 					}
 					
-					pokemon.addVolatile('bossshield');
+					// Only add the condition if they actually have shields
+					if (pokemon.m.maxShields > 0) {
+						pokemon.addVolatile('bossshield');
+					}
 				} 
 				
 				// Scenario B: Trainer Battle (Shield the Ace)
 				else if (pokemon === pokemon.side.pokemon[pokemon.side.pokemon.length - 1] && isBossFloor) {
-					// 1. PRIORITY: Custom shield count (so a trainer using Eternatus still gets 5 shields)
-					if (SPECIES_SHIELDS[pokemon.species.id]) {
+					// 1. PRIORITY: Custom shield count (allowing 0)
+					if (SPECIES_SHIELDS[pokemon.species.id] !== undefined) {
 						pokemon.m.maxShields = SPECIES_SHIELDS[pokemon.species.id];
 					} 
 					// 2. FALLBACK: Trainer Aces get 1 shield normally
@@ -62,30 +66,36 @@ export const Rulesets: {[k: string]: FormatData} = {
 						pokemon.m.maxShields = 1; 
 					}
 					
-					pokemon.addVolatile('bossshield');
+					if (pokemon.m.maxShields > 0) {
+						pokemon.addVolatile('bossshield');
+					}
 				}
 
 				// --- SHIELD TRIGGERS LOGIC ---
-				if (pokemon.m.maxShields) {
+				if (pokemon.m.maxShields && pokemon.m.maxShields > 0) {
 					let triggers: (string | string[])[] = [];
 					
 					// 1. PRIORITY: Check if we have hand-crafted triggers for this specific species
 					if (SPECIES_TRIGGERS[pokemon.species.id]) {
 						triggers = [...SPECIES_TRIGGERS[pokemon.species.id]];
 					} 
-					// 2. FALLBACK: Dynamic triggers based on typing
+					// 2. FALLBACK: Dynamic triggers based on typing (SAFE VERSION)
 					else {
-						if (pokemon.hasType('Fire')) triggers.push('sun, burn');
-						if (pokemon.hasType('Water')) triggers.push('rain');
-						if (pokemon.hasType('Grass')) triggers.push('grassyTerrain');
-						if (pokemon.hasType('Electric')) triggers.push('electricTerrain, paralyze');
-						if (pokemon.hasType('Poison')) triggers.push('toxicSpikes, toxic');
-						if (pokemon.hasType('Ice')) triggers.push('hail, freeze');
-						if (pokemon.hasType('Rock') || pokemon.hasType('Ground')) triggers.push('sandstorm, stealthRock');
-						if (pokemon.hasType('Psychic')) triggers.push('psychicTerrain, wonderRoom');
-						if (pokemon.hasType('Fairy')) triggers.push('mistyTerrain');
+						if (pokemon.hasType('Fire')) triggers.push('spaBoost1, burn');
+						if (pokemon.hasType('Water')) triggers.push('defBoost1, atkDrop1'); 
+						if (pokemon.hasType('Grass')) triggers.push('spdBoost1, heal25');
+						if (pokemon.hasType('Electric')) triggers.push('speBoost1, paralyze');
+						if (pokemon.hasType('Poison')) triggers.push('toxicSpikes, poison'); 
+						if (pokemon.hasType('Ice')) triggers.push('spaBoost1, speDrop1'); 
+						if (pokemon.hasType('Rock') || pokemon.hasType('Ground')) triggers.push('defBoost1, stealthRock');
+						if (pokemon.hasType('Psychic')) triggers.push('spaBoost1, spaDrop1'); 
+						if (pokemon.hasType('Fairy')) triggers.push('spdBoost1, atkDrop1'); 
+						if (pokemon.hasType('Fighting')) triggers.push('atkBoost1, defDrop1'); 
+						if (pokemon.hasType('Flying')) triggers.push('speBoost1, defDrop1'); 
+						if (pokemon.hasType('Ghost') || pokemon.hasType('Dark')) triggers.push('atkDrop1, spaDrop1'); 
+						if (pokemon.hasType('Bug')) triggers.push('speBoost1, stickyWeb');
 						
-						// Pad the array with stat boosts if the Pokémon doesn't have enough types
+						// Pad the array with basic stat boosts if the Pokémon doesn't have enough types
 						while (triggers.length < pokemon.m.maxShields - 1) {
 							const boosts = ['atkBoost1', 'spaBoost1', 'speBoost1', 'defBoost1', 'spdBoost1'];
 							triggers.push(boosts[Math.floor(Math.random() * boosts.length)]);
