@@ -29,7 +29,7 @@ export const Rulesets: {[k: string]: FormatData} = {
 						pokemon.m.maxShields = 1;
 					}
 
-					pokemon.addVolatile('bossshield');[cite: 1]
+					pokemon.addVolatile('bossshield');
 				}
 			}
 		},
