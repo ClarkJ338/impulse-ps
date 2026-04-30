@@ -3,29 +3,33 @@ export const Rulesets: {[k: string]: FormatData} = {
 		effectType: 'Rule',
 		name: 'PokeRogue Rules',
 		desc: 'Applies Boss Shields to designated Pokémon and handles custom scaling.',
-		
-		// Changed from onBegin() to onSwitchIn(pokemon)
+
 		onSwitchIn(pokemon) {
 			if (pokemon.side.id === 'p2') { 
-				
-				// Scenario A: Wild Boss Fight (AI has exactly 1 Pokémon)
-				if (pokemon.side.pokemon.length === 1) {
+				const sidePokemon = pokemon.side.pokemon;
+				const lastIndex = sidePokemon.length - 1;
+        
+				// Check if this is a lone boss or the last mon in a party
+				const isLoneBoss = sidePokemon.length === 1;
+				const isLastMon = pokemon.side.pokemon.indexOf(pokemon) === lastIndex;
+
+				if (isLoneBoss || isLastMon) {
+					// Apply shield scaling based on level
 					if (pokemon.level >= 100) {
-						pokemon.m.maxShields = 4; // Late game boss gets 4 shields
+						pokemon.m.maxShields = 4; 
 					} else if (pokemon.level >= 50) {
-						pokemon.m.maxShields = 3; // Mid game boss gets 3 shields
+						pokemon.m.maxShields = 3; 
 					} else {
-						pokemon.m.maxShields = 2; // Early game boss gets 2 shields
+						pokemon.m.maxShields = 2; 
 					}
-					
-					pokemon.addVolatile('bossshield');
-				} 
-				
-				// Scenario B: Trainer Battle (Shield the Ace)
-				else if (pokemon === pokemon.side.pokemon[pokemon.side.pokemon.length - 1]) {
-					// Trainer Aces get fewer shields to maintain balance
-					pokemon.m.maxShields = 1; 
-					pokemon.addVolatile('bossshield');
+            
+
+					// If it's just a trainer's ace (and not a lone boss), give fewer shields
+					if (isLastMon && !isLoneBoss) {
+						pokemon.m.maxShields = 1;
+					}
+
+					pokemon.addVolatile('bossshield');[cite: 1]
 				}
 			}
 		},
