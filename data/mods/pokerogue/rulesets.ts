@@ -17,11 +17,11 @@ export const Rulesets: {[k: string]: FormatData} = {
         if (isBoss || isAce) {
             // Assign shield count based on Level
             if (pokemon.level >= 100) {
-                pokemon.m.maxShields = 4;[cite: 1]
+                pokemon.m.maxShields = 4;
             } else if (pokemon.level >= 50) {
-                pokemon.m.maxShields = 3;[cite: 1]
+                pokemon.m.maxShields = 3;
             } else {
-                pokemon.m.maxShields = 2;[cite: 1]
+                pokemon.m.maxShields = 2;
             }
 
             // Reduce shield count for non-boss Trainer Aces
