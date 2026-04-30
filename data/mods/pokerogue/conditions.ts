@@ -6,7 +6,7 @@
 // Usage in rulesets:
 //   pokemon.m.shieldTriggers = [
 //     'heal25',                                // first shield break: heal
-//     'atkBoost2, sun',                        // second shield break: boost + set sun
+//     'randomBoost2, sun',                     // second shield break: random +2 boost + set sun
 //     'abilityChange:hugepower, speBoost2',    // third shield break: change ability + boost speed
 //     null,                                    // fourth shield break: nothing
 //   ];
@@ -68,6 +68,32 @@ export const ShieldTriggers: {[k: string]: (this: Battle, target: Pokemon, sourc
 
 	evaBoost1(target) { this.boost({ evasion: 1 }, target); this.add('-message', `${target.name}'s Evasion rose after the shield broke!`); },
 	evaBoost2(target) { this.boost({ evasion: 2 }, target); this.add('-message', `${target.name}'s Evasion sharply rose after the shield broke!`); },
+
+	// Random Boosts
+	randomBoost1(target) {
+		const stats = ['atk', 'def', 'spa', 'spd', 'spe'];
+		const stat = stats[Math.floor(Math.random() * stats.length)];
+		const statNames: {[k: string]: string} = {atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed'};
+		
+		this.boost({ [stat]: 1 }, target);
+		this.add('-message', `${target.name}'s ${statNames[stat]} rose after the shield broke!`);
+	},
+	randomBoost2(target) {
+		const stats = ['atk', 'def', 'spa', 'spd', 'spe'];
+		const stat = stats[Math.floor(Math.random() * stats.length)];
+		const statNames: {[k: string]: string} = {atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed'};
+		
+		this.boost({ [stat]: 2 }, target);
+		this.add('-message', `${target.name}'s ${statNames[stat]} sharply rose after the shield broke!`);
+	},
+	randomBoost4(target) {
+		const stats = ['atk', 'def', 'spa', 'spd', 'spe'];
+		const stat = stats[Math.floor(Math.random() * stats.length)];
+		const statNames: {[k: string]: string} = {atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed'};
+		
+		this.boost({ [stat]: 4 }, target);
+		this.add('-message', `${target.name}'s ${statNames[stat]} drastically rose after the shield broke!`);
+	},
 
 	// -------------------------
 	// Attacker stat drops
