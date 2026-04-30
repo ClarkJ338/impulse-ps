@@ -5,33 +5,33 @@ export const Rulesets: {[k: string]: FormatData} = {
 		desc: 'Applies Boss Shields to designated Pokémon and handles custom scaling.',
 
 		onStart(pokemon) {
-			if (pokemon.side.id === 'p2') { 
-				const sidePokemon = pokemon.side.pokemon;
-				const lastIndex = sidePokemon.length - 1;
+    if (pokemon.side.id === 'p2') { 
+        // 1. Check for specific Boss identifiers
+        const isBossSpecies = ['Eternatus', 'Eternatus-Eternamax'].includes(pokemon.baseSpecies.name);
+        const isLoneBoss = pokemon.side.pokemon.length === 1;
         
-				// Check if this is a lone boss or the last mon in a party
-				const isLoneBoss = sidePokemon.length === 1;
-				const isLastMon = pokemon.side.pokemon.indexOf(pokemon) === lastIndex;
+        // 2. Identify if this is the "Ace" (last mon)
+        // We use pokemon.side.totalPokemon for a more accurate count in custom battles
+        const isLastMon = pokemon.side.pokemon.indexOf(pokemon) === (pokemon.side.totalPokemon - 1);
 
-				if (isLoneBoss || isLastMon) {
-					// Apply shield scaling based on level
-					if (pokemon.level >= 100) {
-						pokemon.m.maxShields = 4; 
-					} else if (pokemon.level >= 50) {
-						pokemon.m.maxShields = 3; 
-					} else {
-						pokemon.m.maxShields = 2; 
-					}
+        if (isBossSpecies || isLoneBoss || isLastMon) {
+            // Apply shield scaling based on level
+            if (pokemon.level >= 100) {
+                pokemon.m.maxShields = 4; 
+            } else if (pokemon.level >= 50) {
+                pokemon.m.maxShields = 3; 
+            } else {
+                pokemon.m.maxShields = 2; 
+            }
             
+            // Adjust count specifically for Trainer Aces that aren't 'Bosses'
+            if (isLastMon && !isBossSpecies && !isLoneBoss) {
+                pokemon.m.maxShields = 1;
+            }
 
-					// If it's just a trainer's ace (and not a lone boss), give fewer shields
-					if (isLastMon && !isLoneBoss) {
-						pokemon.m.maxShields = 1;
-					}
-
-					pokemon.addVolatile('bossshield');
-				}
-			}
-		},
+            pokemon.addVolatile('bossshield');
+        }
+    }
+},
 	},
 };
