@@ -255,12 +255,6 @@ export const commands: Chat.ChatCommands = {
 					moves: ["Dynamax Cannon", "Sludge Wave", "Flamethrower", "Recover"],
 					nature: "Timid", evs: {hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252},
 					level: 5, hp: 100
-				},
-				{
-					name: "Eternatus", species: "Eternatus", item: "Sitrus Berry", ability: "Pressure",
-					moves: ["Dynamax Cannon", "Sludge Wave", "Flamethrower", "Recover"],
-					nature: "Timid", evs: {hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252},
-					level: 5, hp: 100
 				} as any
 			];
 			const bossTeam = Teams.pack(bossTeamJSON);
