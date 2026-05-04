@@ -1311,6 +1311,9 @@ export class Side {
 			break;
 		case 'move':
 			if (!pokemon.fainted && !pokemon.volatiles['commanding']) {
+				// Needed for catching pokemons in PokèRogue Formats 
+				if (this.battle.format.id === 'gen9pokerogueearly' || this.battle.format.id === 'gen9pokerogue') break;
+				
 				return this.emitChoiceError(`Can't pass: Your ${pokemon.name} must make a move (or switch)`);
 			}
 			break;
